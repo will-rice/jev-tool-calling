@@ -232,3 +232,6 @@ results/*-first*.jsonl
 
 # Plan execution scratch
 .superpowers/
+
+# BFCL's own environment
+.bfcl/

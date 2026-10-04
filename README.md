@@ -1,142 +1,200 @@
 # Jev on BFCL
 
 Zero-shot evaluation of [Jev](https://docs.typesafe.ai), TypeSafe AI's
-"System One" decision model, on tool calling: three single-turn splits of the
-[Berkeley Function Calling Leaderboard](https://huggingface.co/datasets/gorilla-llm/Berkeley-Function-Calling-Leaderboard)
-(BFCL) v3.
+"System One" decision model, on the
+[Berkeley Function Calling Leaderboard](https://gorilla.cs.berkeley.edu/leaderboard.html)
+(BFCL), run through BFCL's official runner.
 
 Jev does not generate text. It takes some state and a set of typed questions
 and returns typed answers with probabilities. A tool call needs a function
 name and argument values, and most BFCL arguments are open values such as
 numbers, names, and dates. This project asks how far a model that can only
-select gets, first by labelling each word of the request with the argument
-it supplies, then with a per-function spec that lets code find and assemble
-the values the model chooses among.
+select gets: by labelling each word of the request with the argument it
+supplies, and then with a per-function spec that lets code find and
+assemble the values the model chooses among.
 
 ## Results
 
-Model `jev-1.13.0`. Mean of three runs, with the range across runs in
-brackets. Call accuracy is BFCL's AST match. Every row of every split is
-scored; none is left out.
+These are BFCL's own numbers: generated and scored by `bfcl-eval` on BFCL v4,
+with Jev plugged in as a model. The tables BFCL writes are in
+[`bfcl/score`](bfcl/score) and its raw results in [`bfcl/result`](bfcl/result).
+One run, `jev-1.13.0`.
 
-| Split              | Queries | Word labelling   | With spec        |
-| ------------------ | ------- | ---------------- | ---------------- |
-| `simple`           | 400     | 66.3 (66.0–66.8) | 74.6 (74.2–74.8) |
-| `multiple`         | 200     | 70.0 (69.5–70.5) | 76.2 (76.0–76.5) |
-| `irrelevance`      | 240     | 90.4 (90.4–90.4) | 90.4 (90.4–90.4) |
-| `live_multiple`    | 1,053   | 46.9 (46.8–46.9) | 66.3 (66.1–66.6) |
-| `live_irrelevance` | 882     | 68.9 (68.7–69.2) | 68.7 (68.6–69.0) |
-| `live_relevance`   | 18      | 100.0 (100–100)  | 98.1 (94.4–100)  |
+**Non-live**
 
-The two methods differ only in how arguments are asked for. Picking the
-function is the same request in both.
+| Category              | Queries | Word labelling | With spec |
+| --------------------- | ------- | -------------- | --------- |
+| Python simple         | 400     | 67.3           | 75.3      |
+| Java simple           | 100     | 38.0           | 39.0      |
+| JavaScript simple     | 50      | 48.0           | 46.0      |
+| Multiple              | 200     | 70.0           | 76.0      |
+| Parallel              | 200     | 45.5           | 43.5      |
+| Parallel multiple     | 200     | 37.0           | 41.0      |
+| Irrelevance detection | 240     | 90.4           | 90.0      |
+| **Non-live overall**  |         | **50.9**       | **53.5**  |
 
-| Metric            | Split           | Word labelling | With spec |
-| ----------------- | --------------- | -------------- | --------- |
-| Tool accuracy     | `simple`        | 99.1           | 99.0      |
-|                   | `multiple`      | 98.8           | 99.0      |
-|                   | `live_multiple` | 95.4           | 95.4      |
-| Argument accuracy | `simple`        | 83.2           | 89.1      |
-|                   | `multiple`      | 85.2           | 89.5      |
-|                   | `live_multiple` | 69.8           | 84.9      |
+**Live**
 
-Input tokens per run of all six splits: 12.7 million with word labelling and
-13.2 million with the spec.
+| Category              | Queries | Word labelling | With spec |
+| --------------------- | ------- | -------------- | --------- |
+| Simple                | 258     | 43.0           | 55.4      |
+| Multiple              | 1,053   | 47.2           | 66.1      |
+| Parallel              | 16      | 6.3            | 31.3      |
+| Parallel multiple     | 24      | 33.3           | 33.3      |
+| Irrelevance detection | 884     | 72.9           | 73.3      |
+| Relevance detection   | 16      | 93.8           | 93.8      |
+| **Live overall**      |         | **45.7**       | **63.1**  |
 
-- **Call accuracy**: the whole call is right. On the irrelevance splits it
-  is the share of queries where Jev called nothing, and on `live_relevance`
-  the share where it called something.
-- **Tool accuracy**: the share of queries that picked the gold function. On
-  `simple` only one function is offered, so it is the share where Jev did
-  not abstain.
-- **Argument accuracy**: over arguments the gold answer requires, on queries
-  that picked the gold function.
+**BFCL's overall score: 19.8 with the spec, 17.8 with word labelling.** It
+averages in the categories below, which are zero.
 
-### Which of BFCL v3 this covers
+### What is not run
 
-| Categories                                               | Queries | Status                                            |
-| -------------------------------------------------------- | ------- | ------------------------------------------------- |
-| `simple`, `multiple`, `irrelevance`                      | 840     | Reported above                                    |
-| `live_multiple`, `live_irrelevance`, `live_relevance`    | 1,953   | Reported above                                    |
-| `live_simple`                                            | 258     | Dev split: the method was tuned on it (see below) |
-| `parallel`, `parallel_multiple`, and their live versions | 440     | Not yet run: the method emits one call per query  |
-| `java`, `javascript`                                     | 150     | Not yet run: values are read and scored as Python |
-| `sql`, `rest`, `exec_*`                                  | 410     | Not yet run: scored by executing the call         |
-| Multi-turn (5 categories)                                | 1,000   | Not yet run: needs state across turns             |
+| Categories                 | Why                                                                                |
+| -------------------------- | ---------------------------------------------------------------------------------- |
+| Multi-turn (4)             | Not built yet. It is scored on function calls, so Jev can attempt it               |
+| Web search (2), memory (3) | Scored on the right answer appearing in the model's text reply. Jev writes no text |
+| Format sensitivity         | BFCL runs it only for prompt-mode models                                           |
 
-A category that is not yet run has no score here. It is not counted as zero
-and not folded into any average.
+BFCL counts these as zero in its overall score, and so do the numbers above.
 
-What the numbers say:
+### Notes on these numbers
 
-- **Picking the function is nearly solved.** Jev picks the gold function on
-  99% of queries, whether one function is offered or up to four, and calls
-  nothing on 90% of the queries no offered function fits.
+- **Word labelling** is Jev with no authored spec: arguments are asked from
+  each function's schema, so values are only ever copied from the request.
+  **With spec** adds a spec per function, written by a language model from
+  the function definitions alone.
+- **Java and JavaScript have no spec yet**, so both columns use the schema
+  there. BFCL passes their arguments as strings.
+- **Live parallel has 16 queries and live relevance 16**, so one query is
+  about 6 points.
+- **`live_simple` was the dev split**: the argument questions and decoding
+  were tuned on it, so its row is not a clean result.
+- **Cost and speed**, as BFCL measured them: under a dollar for the whole
+  run, and a 95th-percentile latency of 0.67 seconds per query. The mean is
+  skewed by a few requests that hit long retries.
+
+### Against the leaderboard
+
+BFCL's leaderboard had 109 models at its 2026-04-12 update. Where the spec
+method would rank on each column:
+
+| Column                     | Jev  | Leaderboard median | Rank of 110 |
+| -------------------------- | ---- | ------------------ | ----------- |
+| Overall                    | 19.8 | 35.5               | 101st       |
+| Non-live overall           | 53.5 | 83.0               | 100th       |
+| Non-live Python simple     | 75.3 | 92.0               | 100th       |
+| Non-live multiple          | 76.0 | 92.0               | 96th        |
+| Non-live parallel          | 43.5 | 88.0               | 102nd       |
+| Non-live parallel multiple | 41.0 | 82.5               | 98th        |
+| Non-live irrelevance       | 90.0 | 84.6               | 23rd        |
+| Live overall               | 63.1 | 70.8               | 81st        |
+| Live multiple              | 66.1 | 71.0               | 75th        |
+| Live irrelevance           | 73.3 | 77.3               | 68th        |
+| Live relevance             | 93.8 | 81.2               | 8th         |
+
+### What the numbers say
+
+- **Deciding is Jev's strength.** It picks the right function about 99% of
+  the time when one call is needed, declines to call on 90% of the non-live
+  queries no function fits, and calls something on 94% of those one does.
 - **Jev is about 95% right on any value it can select, and the spec widens
-  what it can select.** Required arguments on queries that picked the gold
-  function, first run, `simple` and `multiple` together:
+  what it can select.** Required arguments on `simple` and `multiple`
+  queries that made one call to the gold function, from this project's own
+  runner:
 
   | Argument                                    | Count | Word labelling | With spec |
   | ------------------------------------------- | ----- | -------------- | --------- |
-  | Closed set: enum, boolean, array of an enum | 121   | 95.0           | 93.4      |
-  | Open value, in the request as written       | 1,134 | 95.5           | 95.9      |
-  | Open value, needs conversion                | 160   | 0              | 48.1      |
+  | Closed set: enum, boolean, array of an enum | 120   | 95.0           | 94.2      |
+  | Open value, in the request as written       | 1,139 | 95.6           | 96.2      |
+  | Open value, needs conversion                | 159   | 0              | 48.4      |
   | Type that is never asked: dict, tuple, any  | 14    | 0              | 0         |
 
-- **Word labelling has a ceiling.** It can only copy. 76.2% of `simple`
-  queries and 79.5% of `multiple` queries have every required value in the
-  request as written; it gets 87% of those entirely right and none of the
-  others.
-- **The spec gets past it.** Of the 136 queries outside that ceiling, the
-  spec method gets 48 right (35.3%), by reading `$1M` as `1000000`, writing
-  "March 5, 2023" as `2023-03-05`, or choosing `vaporization` for "liquid to
-  steam". By the kind the spec gave each argument: dates go from 36% to
-  100%, numbers from 84% to 93%, options from 85% to 96%, places from 91%
-  to 98%.
-- **On `simple` and `multiple` it is also cheaper.** A number or date no
-  longer needs a question per word, so those two splits use 17% fewer input
-  tokens. Over all six splits the spec uses 4% more, because the live
-  functions have many options, each with a described line.
-- **The spec matters most on live data.** `live_multiple` goes from 46.9% to
-  66.3%, past its word-labelling ceiling of 57.4%: its functions take many
-  dates, places, and listed values.
-- **Abstaining is harder on live data.** Jev calls nothing on 90% of
-  `irrelevance` queries but only 69% of `live_irrelevance` ones, where the
-  offered functions are closer to the request.
-- **What is left needs reasoning.** Unit conversion (`50mH` to `0.05`),
+- **Word labelling has a ceiling.** It can only copy, and about a quarter of
+  `simple` queries need a value that is not in the request as written:
+  `$1M` for `1000000`, "March 5, 2023" as `2023-03-05`, "liquid to steam"
+  for `vaporization`.
+- **The spec gets past it, most of all on live data**, whose functions take
+  many dates, places, and listed values: 45.7 to 63.1 overall.
+- **Several calls from one request work about 40% of the time**, with no
+  tuning on those categories.
+- **What is left needs reasoning**: unit conversion (`50mH` to `0.05`),
   arithmetic (`2 pi` to `6.2832`), inference ("from rest" to `0`), outside
   knowledge (`Apple` to `AAPL`), and structured values.
-- **The range across runs is not a confidence interval.** It shows how much
-  Jev's answers vary between identical requests, which is about a point.
+- **Against language models Jev is near the bottom on filling a call and
+  mid-table or better on deciding whether to make one.** BFCL rewards
+  rewriting a value, which a model that only selects cannot do alone.
 
-BFCL rewards rewriting a value, which a model that only selects cannot do
-alone. Against the
-[BFCL leaderboard](https://gorilla.cs.berkeley.edu/leaderboard.html)'s
-matching Python columns (109 models, as of its 2026-04-12 update), the spec
-method would rank about:
+## Running the benchmark
 
-| Split              | With spec | Leaderboard median | Rank of 110 |
-| ------------------ | --------- | ------------------ | ----------- |
-| `simple`           | 74.6      | 92.0               | 101st       |
-| `multiple`         | 76.2      | 92.0               | 96th        |
-| `irrelevance`      | 90.4      | 84.6               | 23rd        |
-| `live_multiple`    | 66.3      | 71.0               | 73rd        |
-| `live_irrelevance` | 68.7      | 77.3               | 78th        |
-| `live_relevance`   | 98.1      | 81.3               | 8th         |
+BFCL's runner pins dependencies that conflict with this project's, so it
+runs in its own environment. From the repository root:
 
-The leaderboard runs a later release of the dataset than the one pinned
-here, so these ranks are approximate.
+```bash
+uv venv .bfcl --python 3.13
+```
+
+```bash
+printf 'numpy>=2.1\nfilelock>=3.20\n' > .bfcl/overrides.txt
+```
+
+```bash
+uv pip install --python .bfcl/bin/python --override .bfcl/overrides.txt bfcl-eval soundfile
+```
+
+```bash
+uv pip install --python .bfcl/bin/python --no-deps -e .
+```
+
+```bash
+uv pip install --python .bfcl/bin/python typesafe-sdk tqdm python-dotenv
+```
+
+Add your `TYPESAFE_API_KEY` to `.env`. Then generate and score with BFCL's
+own commands; [`bfcl/run.py`](bfcl/run.py) registers `jev-words` and
+`jev-spec` as models and hands over to BFCL's `bfcl` command line:
+
+```bash
+BFCL_PROJECT_ROOT=$PWD/bfcl .bfcl/bin/python bfcl/run.py generate --model jev-spec --test-category single_turn --num-threads 8
+```
+
+```bash
+BFCL_PROJECT_ROOT=$PWD/bfcl .bfcl/bin/python bfcl/run.py evaluate --model jev-spec --test-category single_turn
+```
+
+[`bfcl/handler.py`](bfcl/handler.py) is the whole integration: BFCL hands it
+one test entry at a time, it runs this project's prediction, and returns the
+calls for BFCL's checkers.
 
 ## Method
 
-Each query gets two requests, both with the query as state.
+BFCL does not say which queries need one call, several, or none, so every
+query goes through the same steps.
 
-1. **Tool.** One `Choice` over the offered functions, each with its
-   description, plus a described `none`. Choosing `none` is abstaining. A
-   query offered no function at all is answered with no call.
-2. **Arguments**, for the function Jev picked, asked the way that function's
+1. **Which functions, and how often.** One request asks:
+   - a `Choice` over the offered functions plus a described `none`. Each
+     function is shown with its description and its arguments'
+     descriptions. Choosing `none` is abstaining;
+   - how many times each function must be called;
+   - when several functions are offered, how many different ones are needed
+     and, for each, whether it is.
+
+   The picked function is called once unless the other answers are
+   confident: more than one function needs the chance of one to be under
+   0.1, and more than one call needs it to be under 0.2. A confident
+   "several functions" answer also overrides `none`, since no single
+   function answers a request that needs two.
+
+2. **Arguments**, for each function selected, asked the way that function's
    spec says. The gold function is never used, so picking the wrong function
    costs the arguments too.
+3. **Several calls to one function.** Its words are labelled once and every
+   value found for a parameter is kept in order. The values are zipped by
+   position, so the first of each goes to the first call; a parameter with
+   one value shares it. A number that can be read two ways, such as "30%",
+   gets one more question choosing the reading.
+
+A query offered no function at all is answered with no call.
 
 The query is a row's last message. Earlier messages, such as a system prompt
 or a previous turn, are sent with it as context and are not labelled. A long
@@ -234,6 +292,16 @@ reported splits. What saw them, and what did not:
 - **The live splits.** `live_multiple`, `live_irrelevance`, and
   `live_relevance` were run once, after everything above, with no tuning on
   them. Their specs were written from function definitions only.
+- **Several calls.** How to select functions and count calls was worked out
+  on `exec_parallel` and `exec_parallel_multiple`, two legacy BFCL splits
+  that are not leaderboard categories. The two confidence thresholds were
+  set with those and with how the count questions behaved on single-call
+  queries from `simple`, `multiple`, and `live_multiple`. The override of
+  `none` was added after seeing that nearly every `parallel_multiple` query
+  abstained. So the parallel categories were not tuned for accuracy, but
+  they were not untouched either.
+- **Showing each function's arguments** when picking a function was added
+  without a dev comparison and is in every number above.
 - **The spec method.** The idea came from classifying the test splits'
   out-of-reach arguments by what producing them would take, and the kinds a
   spec can have were chosen from that classification. The spec files were
@@ -243,14 +311,13 @@ reported splits. What saw them, and what did not:
 
 ### Scoring
 
-`metrics.py` ports the AST-match rule from `bfcl-eval`
-(`simple_function_checker`): the right function, every required parameter
-present, every value among the gold answer's accepted values, and strings
-compared after removing case, spaces, and light punctuation. The package
-itself pins dozens of unrelated dependencies, so it is not a dependency. The
-port agrees with it on all 9,591 calls in the committed test runs, under
-both methods, that picked the gold function, and on 600 constructed calls of which 136 are
-wrong. How to repeat the check is in
+The reported numbers are scored by BFCL itself. This project's own runner
+uses `metrics.py`, a port of BFCL's AST match: the right function, every
+required parameter present, every value among the gold answer's accepted
+values, strings compared after removing case, spaces, and light punctuation,
+and, for several calls, each gold call matched by a different predicted call
+in any order. The port was checked call by call against BFCL's checker
+before the official runner was wired in; see
 [docs/research/2026-10-04-scorer-parity.md](docs/research/2026-10-04-scorer-parity.md).
 
 ### Known limitations
@@ -259,16 +326,42 @@ wrong. How to repeat the check is in
   (37 of 3,375 parameters) are never asked.
 - The spec is only as good as its author's reading of each description. A
   parameter wrongly made a closed set loses values outside it, which is why
-  closed-set accuracy is slightly lower with the spec (93.4 against 95.0).
+  closed-set accuracy is slightly lower with the spec (94.2 against 95.0).
 - Number candidates cover common written forms only. Units, arithmetic, and
   inferred values are not attempted.
 - A place is completed with a US state or one of about 120 countries.
 - A scalar string takes one run of words carrying its label, and a scalar
   number the first such word that parses.
 - The ceiling ignores overlap between arguments, so it is an upper bound.
-- Parallel, multi-turn, executed, and non-Python BFCL splits are not yet
-  evaluated; see the table under Results.
-- `live_relevance` has 18 queries, so one query is 5.6 points.
+- When one function is called several times, options, flags, and dates are
+  asked once and shared by every call, and values are matched by the order
+  the request gives them in.
+- Java and JavaScript functions have no authored spec.
+- Multi-turn, web search, and memory categories are not run; see the table
+  under Results.
+
+## This project's own runner
+
+Before the official runner was wired in, the project had its own loader and
+a port of BFCL's AST match, on BFCL v3. It is kept for development: it is
+fast, it saves every answer's probabilities, and it reports things BFCL
+does not, such as argument accuracy and the ceiling. `uv run run test spec`
+runs it and `uv run report test spec` scores the saved runs in `results/`.
+
+It agrees with BFCL. Word labelling, mean of three runs on v3, against
+BFCL's score on v4:
+
+| Category      | This runner | BFCL |
+| ------------- | ----------- | ---- |
+| Python simple | 66.8        | 67.3 |
+| Multiple      | 69.3        | 70.0 |
+| Irrelevance   | 89.7        | 90.4 |
+| Live multiple | 47.4        | 47.2 |
+| Parallel      | 45.8        | 45.5 |
+
+Its committed runs predate one fix, the override that stops Jev abstaining
+when several functions are needed, so its parallel-multiple numbers are
+lower than BFCL's above.
 
 ## What we tried
 
@@ -290,6 +383,19 @@ in
 | Current, each word shown every earlier word's label                 | 42.9          | 64.4              |
 | Current, with the function's description in the state               | 46.4          | 68.0              |
 | **A spec per function** (pilot)                                     | 55.8          | 76.5              |
+
+Several calls from one request, on `exec_parallel` (50 queries), as the
+share of queries with every call right:
+
+| Approach                                                    | All calls right |
+| ----------------------------------------------------------- | --------------- |
+| Label once, zip each parameter's values by position         | 48              |
+| The same, a repeated value shared and arrays split per call | 52              |
+| The same, Jev choosing between two readings of a number     | 58              |
+| Asking each call's arguments separately ("the second call") | 22 to 24        |
+| Asking which call each value belongs to                     | 50              |
+
+Asked directly, Jev gave the right number of calls on 98% of those queries.
 
 "Current" is word labelling as committed at the time, on the 233 dev queries
 that could then be posed. The committed dev runs cover all 258 and score
@@ -315,7 +421,11 @@ Add your `TYPESAFE_API_KEY` to `.env`.
 
 ## Usage
 
-Run the three reported splits three times with the authored spec:
+These commands are this project's own runner, used for development. The
+reported results come from BFCL's runner; see
+[Running the benchmark](#running-the-benchmark).
+
+Run the test splits three times with the authored spec:
 
 ```bash
 uv run run test spec
@@ -376,7 +486,7 @@ src/jevtools/
 ├── data.py     # Load queries, functions, and gold calls
 ├── spec.py     # Spec entries, the spec derived from a schema, loading
 ├── values.py   # Find numbers; assemble dates and places; read words
-├── jev.py      # Build questions, call Jev, decode answers into a call
+├── jev.py      # Select functions, build questions, call Jev, decode calls
 ├── metrics.py  # AST match, accuracies, ceiling
 └── scripts/
     ├── run.py     # Run a stage's splits
@@ -384,6 +494,8 @@ src/jevtools/
 ```
 
 `specs/` holds the authored specs and the format they were written to.
+`bfcl/` holds the handler and launcher for BFCL's official runner, and the
+results and score tables it wrote.
 
 ## Development
 
