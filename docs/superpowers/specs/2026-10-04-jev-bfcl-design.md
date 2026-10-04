@@ -174,15 +174,49 @@ No fallbacks. SDK retries handle rate limits. Any other API error, a missing
 key, or a row that fails to parse raises and stops the run. There is no
 resume logic.
 
+## Revisions from planning
+
+Found by prototyping the decoding offline against the pinned data, with no
+API calls. Where these differ from the sections above, these apply.
+
+- **Words split punctuation off.** Words are matches of
+  `[-+]?\d[\d.]*(?:[eE][-+]?\d+)?|\w+|[^\w\s]`, not whitespace-separated
+  chunks, and a value is the query text from its first word's start to its
+  last word's end. The ceiling rises from 69% to 76% on `simple` and from 74%
+  to 80% on `multiple`, because `A(3,4)` and `$5` no longer glue a value to
+  its punctuation. It costs more questions per query.
+- **Enum arrays are sets.** 74 parameters are arrays whose items are an enum.
+  Each gets one `Noul` per member, as in the cookbook, and the argument is
+  the members answered yes. An empty set is omitted.
+- **No gap filling for arrays.** Filling unlabelled words between two words
+  of the same parameter would merge `Santa Barbara and Monterey` into one
+  element. Gap filling applies to non-array parameters only.
+- **An array is omitted if any element fails to coerce.**
+- **Unsupported types get no question.** `dict`, `tuple`, `any`, and arrays
+  of dicts or arrays (37 parameters) are never filled.
+- **Five functions have no fillable parameter.** Their argument request is
+  skipped and the call has no arguments.
+- **The ceiling is per argument, not a simulated labelling.** An argument is
+  expressible if some run of consecutive words coerces to an accepted value
+  (for an array, if every element of some accepted list does). Closed-set
+  arguments always are; unsupported types never are. A query counts toward
+  the ceiling when every argument that may not be omitted is expressible.
+  This ignores overlap between arguments, so it is an upper bound.
+- **Tool accuracy is also reported for `simple`**, where it is the share of
+  queries on which Jev did not abstain.
+- **Seven parameters have no description**; their option is offered
+  undescribed.
+- **One gold answer (`simple_363`) names its function without the module
+  prefix.** On `simple` the gold function is the one offered function, which
+  is what BFCL's checker does.
+
 ## Open questions for the API probe
 
-To be answered by sending about 20 queries before the plan is final, and
+To be answered by sending about 20 queries as the plan's first task, and
 recorded here:
 
-- Input tokens per request, and whether the longest query (48 words, 6
-  parameters) fits in one argument request.
-- Whether whitespace words are adequate for queries such as `A(3,4)`, or
-  whether punctuation needs to be split off.
+- Input tokens per request, and whether the longest query (48
+  whitespace-separated words, 6 parameters) fits in one argument request.
 - Whether a described `none` in the tool question abstains on `irrelevance`
   without costing accuracy on `simple`, where the only offered function is
   always right.
