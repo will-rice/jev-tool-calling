@@ -17,10 +17,20 @@ SPLITS: dict[Stage, tuple[Split, ...]] = {
         "live_multiple",
         "live_irrelevance",
         "live_relevance",
+        "parallel",
+        "parallel_multiple",
+        "live_parallel",
+        "live_parallel_multiple",
     ),
 }
 RUNS: dict[Stage, int] = {"dev": 1, "test": 3}
 UNANSWERED: tuple[Split, ...] = ("irrelevance", "live_irrelevance", "live_relevance")
+PARALLEL: tuple[Split, ...] = (
+    "parallel",
+    "parallel_multiple",
+    "live_parallel",
+    "live_parallel_multiple",
+)
 MAX_GAP = 2
 THRESHOLD = 0.5
 LABEL_THRESHOLD = 0.7

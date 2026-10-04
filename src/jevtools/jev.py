@@ -77,7 +77,7 @@ def predict(
         return Prediction(
             example=example,
             method=method,
-            call=None,
+            calls=(),
             tool_probabilities={NONE: 1.0},
             choices={},
             nouls={},
@@ -112,7 +112,7 @@ def predict(
     return Prediction(
         example=example,
         method=method,
-        call=call,
+        calls=() if call is None else (call,),
         tool_probabilities=tool.probabilities,
         choices=choices,
         nouls=nouls,

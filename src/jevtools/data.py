@@ -16,7 +16,8 @@ def load_examples(split: Split) -> list[Example]:
     The query is the last message of a row and any earlier messages are its
     context. On a split that offers one function per query, the gold
     function is that function, whatever name the gold file gives it. Splits
-    scored only on whether a call was made have no gold calls.
+    scored only on whether a call was made have no gold calls, and parallel
+    splits have several per query.
 
     Gold answers are paired with rows by position: the two files are in the
     same order, and one live row's id is misspelled in its gold file.
@@ -37,12 +38,15 @@ def load_examples(split: Split) -> list[Example]:
     for row, answer in zip(rows, answers, strict=True):
         functions = tuple(parse_function(spec) for spec in row["function"])
         [messages] = row["question"]
-        gold = None
+        gold = ()
         if answer is not None:
-            [(name, accepted)] = answer["ground_truth"][0].items()
-            gold = Gold(
-                name=name if len(functions) > 1 else functions[0].name,
-                accepted=accepted,
+            gold = tuple(
+                Gold(
+                    name=name if len(functions) > 1 else functions[0].name,
+                    accepted=accepted,
+                )
+                for call in answer["ground_truth"]
+                for name, accepted in call.items()
             )
         examples.append(
             Example(

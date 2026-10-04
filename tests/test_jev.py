@@ -605,7 +605,7 @@ def test_spec_decoding_omits_what_the_query_does_not_give() -> None:
 
 def test_request_state_is_the_query_alone_without_earlier_messages() -> None:
     """A single-message request sends just the query."""
-    example = Example(id="x", split="simple", query="hi", functions=(), gold=None)
+    example = Example(id="x", split="simple", query="hi", functions=(), gold=())
     assert request_state(example) == {"query": "hi"}
 
 
@@ -617,7 +617,7 @@ def test_request_state_carries_earlier_messages_as_context() -> None:
         query="and tomorrow?",
         context=(("system", "Be brief."), ("user", "Weather in Paris?")),
         functions=(),
-        gold=None,
+        gold=(),
     )
     assert request_state(example) == {
         "query": "and tomorrow?",

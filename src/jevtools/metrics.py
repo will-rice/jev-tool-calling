@@ -7,18 +7,29 @@ from typing import get_args
 
 from pydantic import JsonValue
 
-from jevtools.config import UNANSWERED
+from jevtools.config import PARALLEL, UNANSWERED
 from jevtools.jev import coerce, word_spans
-from jevtools.models import Call, Example, Parameter, Prediction, Split
+from jevtools.models import (
+    Call,
+    Example,
+    Function,
+    Gold,
+    Parameter,
+    Prediction,
+    Split,
+)
 
 
 def evaluate(predictions: Sequence[Prediction]) -> dict[str, float]:
     """Score one run's predictions, split by split.
 
-    Call accuracy is BFCL's AST match, or abstention on irrelevance. Tool
-    accuracy is the share of queries that picked the gold function. The
-    ceiling is the share of queries whose every needed argument could be
-    produced by labelling words.
+    Call accuracy is BFCL's AST match over every call of a query, or the
+    right decision to call or not on a split with no gold calls. A
+    single-call split also reports tool accuracy (the share of queries that
+    made one call, to the gold function), argument accuracy, and the ceiling
+    (the share of queries whose every needed argument could be produced by
+    labelling words). A parallel split reports count accuracy, the share of
+    queries with the right number of calls.
 
     Raises:
         ValueError: If there are no predictions.
@@ -31,12 +42,17 @@ def evaluate(predictions: Sequence[Prediction]) -> dict[str, float]:
         if not rows:
             continue
         metrics[f"{split}/call_accuracy"] = fmean(
-            matches(p.example, p.call) for p in rows
+            matches(p.example, p.calls) for p in rows
         )
         if split in UNANSWERED:
             continue
+        if split in PARALLEL:
+            metrics[f"{split}/count_accuracy"] = fmean(
+                len(p.calls) == len(p.example.gold) for p in rows
+            )
+            continue
         metrics[f"{split}/tool_accuracy"] = fmean(
-            p.call is not None and p.call.name == p.example.target[0].name for p in rows
+            [call.name for call in p.calls] == [p.example.target[0].name] for p in rows
         )
         metrics[f"{split}/argument_accuracy"] = argument_accuracy(rows)
         metrics[f"{split}/ceiling"] = fmean(reachable(p.example) for p in rows)
@@ -44,19 +60,19 @@ def evaluate(predictions: Sequence[Prediction]) -> dict[str, float]:
 
 
 def argument_accuracy(predictions: Sequence[Prediction]) -> float:
-    """Score arguments on the queries that picked the gold function.
+    """Score arguments on the queries that made one call, to the gold function.
 
     Only arguments the gold answer does not allow to be omitted are scored.
 
     Raises:
-        ValueError: If no query picked its gold function.
+        ValueError: If no query made exactly that call.
     """
     scored = []
     for prediction in predictions:
         function, accepted = prediction.example.target
-        call = prediction.call
-        if call is None or call.name != function.name:
+        if [call.name for call in prediction.calls] != [function.name]:
             continue
+        [call] = prediction.calls
         scored.extend(
             name in call.arguments and accepts(call.arguments[name], values)
             for name, values in accepted.items()
@@ -67,28 +83,48 @@ def argument_accuracy(predictions: Sequence[Prediction]) -> float:
     return fmean(scored)
 
 
-def matches(example: Example, call: Call | None) -> bool:
-    """Decide whether a predicted call is correct under BFCL's AST match.
+def matches(example: Example, calls: Sequence[Call]) -> bool:
+    """Decide whether the predicted calls are correct under BFCL's AST match.
 
-    With no gold call, the correct prediction is no call, except on a
-    relevance split, where it is any call.
+    There must be as many calls as gold calls, and each gold call must be
+    matched by a different predicted call, in any order. With no gold call
+    the correct prediction is no call, except on a relevance split, where it
+    is any call.
     """
     if example.split == "live_relevance":
-        return call is not None
-    if example.gold is None:
-        return call is None
-    function, accepted = example.target
-    if call is None or call.name != function.name:
+        return len(calls) > 0
+    if len(calls) != len(example.gold):
+        return False
+    remaining = list(calls)
+    for gold in example.gold:
+        function = example.function(gold.name)
+        match = next(
+            (call for call in remaining if call_matches(function, call, gold)), None
+        )
+        if match is None:
+            return False
+        remaining.remove(match)
+    return True
+
+
+def call_matches(function: Function, call: Call, gold: Gold) -> bool:
+    """Decide whether one call matches one gold call.
+
+    The name is right, every required parameter is present, every argument
+    has accepted values and its value is one of them, and every gold
+    argument is present unless it may be omitted.
+    """
+    if call.name != function.name:
         return False
     if any(p.required and p.name not in call.arguments for p in function.parameters):
         return False
     if any(
-        name not in accepted or not accepts(value, accepted[name])
+        name not in gold.accepted or not accepts(value, gold.accepted[name])
         for name, value in call.arguments.items()
     ):
         return False
     return all(
-        name in call.arguments or "" in values for name, values in accepted.items()
+        name in call.arguments or "" in values for name, values in gold.accepted.items()
     )
 
 
