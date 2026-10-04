@@ -36,7 +36,6 @@ def predict(client: TypeSafeClient, example: Example) -> Prediction:
 
     Arguments are asked only for the function the model picked. A function
     with nothing to ask is called with no arguments and no second request.
-    A third request refines the boundaries of any string value found.
 
     Args:
         client: An open TypeSafe client.
@@ -65,14 +64,6 @@ def predict(client: TypeSafeClient, example: Example) -> Prediction:
             }
             nouls = {name: answer.noul for name, answer in response.nouls.items()}
             argument_input_tokens = input_tokens(response)
-            refinements = refine_questions(example.query, function, choices)
-            if refinements:
-                refined = client.system_one(state, refinements, model=MODEL)
-                choices |= {
-                    name: answer.probabilities
-                    for name, answer in refined.choices.items()
-                }
-                argument_input_tokens += input_tokens(refined)
         call = Call(
             name=function.name,
             arguments=decode_arguments(example.query, function, choices, nouls),
@@ -207,8 +198,7 @@ def decode_arguments(
     An argument is left out when its value does not parse, when an optional
     closed-set argument is not stated, or when a set has no members.
 
-    A string takes its refined value if one was asked for, or else its
-    strongest run of labelled words. A string array takes one element per
+    A string takes its strongest run of labelled words. A string array takes one element per
     run, all of which must be readable. A number is read word
     by word: it takes the first labelled word that parses, and a number
     array every labelled word that parses.
@@ -276,77 +266,22 @@ def open_texts(
 ) -> list[str]:
     """Return the texts an open-valued parameter's value is read from.
 
-    A scalar string has one: the refine question's answer if it was asked,
-    or else the run with the most probability behind it, so a stray labelled
-    word elsewhere in the query does not win by coming first. Every other
-    parameter has one text per run, in query order.
+    A scalar string has one: the run with the most probability behind it,
+    so a stray labelled word elsewhere in the query does not win by coming
+    first. Every other parameter has one text per run, in query order.
     """
     spans = word_spans(query)
-    name = parameter.name
-    if parameter.type == "string" and f"refine.{name}" in choices:
-        options = choices[f"refine.{name}"]
-        return [max(options, key=lambda option: options[option])]
     if parameter.type == "string" and runs:
         runs = [
             max(
                 runs,
                 key=lambda run: sum(
-                    choices[f"token_{index}"].get(name, 0.0)
+                    choices[f"token_{index}"].get(parameter.name, 0.0)
                     for index in range(run[0], run[1] + 1)
                 ),
             )
         ]
     return [query[spans[first][0] : spans[last][1]] for first, last in runs]
-
-
-def refine_questions(
-    query: str, function: Function, choices: Mapping[str, Mapping[str, float]]
-) -> dict[str, Choice]:
-    """Build one question per scalar string asking for its exact value.
-
-    Word labels find where a value is but often take a word too many or too
-    few ("company XYZ" for "XYZ"). The options are each run of labelled
-    words, the run without its first or last word, and the run with one more
-    word on either side, read as strings. Nothing is asked when there is
-    only one option.
-    """
-    spans = word_spans(query)
-    runs = (
-        word_runs(query, function, choices)
-        if any(parameter.kind == "words" for parameter in function.parameters)
-        else {}
-    )
-    questions = {}
-    for parameter in function.parameters:
-        if parameter.kind != "words" or parameter.type != "string":
-            continue
-        candidates = [
-            coerce(query[spans[start][0] : spans[end][1]], "string")
-            for first, last in runs.get(parameter.name, [])
-            for start, end in (
-                (first, last),
-                (first + 1, last),
-                (first, last - 1),
-                (first - 1, last),
-                (first, last + 1),
-            )
-            if 0 <= start <= end < len(spans)
-        ]
-        criteria = dict.fromkeys(text for text in candidates if isinstance(text, str))
-        if len(criteria) > 1:
-            questions[f"refine.{parameter.name}"] = Choice(
-                instructions={
-                    "function": function.name,
-                    "argument": parameter.name,
-                    "description": parameter.description,
-                    "question": (
-                        "Which of these is the exact value of `argument` in "
-                        "`query`, with no extra words?"
-                    ),
-                },
-                criteria=criteria,
-            )
-    return questions
 
 
 def word_runs(

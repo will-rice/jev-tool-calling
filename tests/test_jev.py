@@ -8,7 +8,6 @@ from jevtools.jev import (
     coerce,
     decode_arguments,
     input_tokens,
-    refine_questions,
     tool_question,
     word_runs,
     word_spans,
@@ -453,44 +452,3 @@ def test_decode_takes_the_strongest_run_of_a_scalar_string() -> None:
     }
     query = "Yosemite which is in Mariposa County"
     assert decode_arguments(query, ROUTE, choices, {}) == {"city": "Mariposa County"}
-
-
-def test_refine_question_offers_each_run_trimmed_and_widened_by_a_word() -> None:
-    """The model picks the exact value from a run and its one-word neighbours."""
-    questions = refine_questions(
-        "of company XYZ today", ROUTE, labels("none", "city", "city", "none")
-    )
-    assert list(questions) == ["refine.city"]
-    assert questions["refine.city"].criteria == {
-        "company XYZ": None,
-        "XYZ": None,
-        "company": None,
-        "of company XYZ": None,
-        "company XYZ today": None,
-    }
-    assert questions["refine.city"].instructions == {
-        "function": "route",
-        "argument": "city",
-        "description": "City.",
-        "question": (
-            "Which of these is the exact value of `argument` in `query`, "
-            "with no extra words?"
-        ),
-    }
-
-
-def test_refine_question_is_asked_only_for_scalar_strings_with_a_value() -> None:
-    """Numbers, arrays, and arguments nothing was labelled for are not refined."""
-    choices = labels("stops", "none", "speed")
-    assert refine_questions("Paris at 60", ROUTE, choices) == {}
-
-
-def test_decode_uses_the_refined_value_when_one_was_asked_for() -> None:
-    """The refine answer replaces the run it was built from."""
-    choices = {
-        **labels("none", "city", "city", "none"),
-        "refine.city": {"company XYZ": 0.2, "XYZ": 0.7, "company": 0.1},
-    }
-    assert decode_arguments("of company XYZ today", ROUTE, choices, {}) == {
-        "city": "XYZ"
-    }
