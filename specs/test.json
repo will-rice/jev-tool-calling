@@ -66381,5 +66381,23 @@
         }
       }
     }
+  },
+  "1366233c755b748c": {
+    "name": "cmd_controller.execute",
+    "parameters": {
+      "command": {
+        "kind": "text",
+        "question": "What Windows command line should be run?"
+      },
+      "unit": {
+        "kind": "options",
+        "question": "In what unit should the command's running time be measured?",
+        "stated": "Does the request say how the command's running time should be measured?",
+        "options": {
+          "seconds": "measure execution time in seconds",
+          "milliseconds": "measure execution time in milliseconds"
+        }
+      }
+    }
   }
 }
