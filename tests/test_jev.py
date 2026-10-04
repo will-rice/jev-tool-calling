@@ -9,8 +9,8 @@ from jevtools.jev import (
     decode_arguments,
     input_tokens,
     tool_question,
+    word_runs,
     word_spans,
-    word_values,
 )
 from jevtools.models import Function, Parameter
 
@@ -203,6 +203,17 @@ AREA_NOULS = {
 }
 
 
+def texts(
+    query: str, function: Function, choices: dict[str, dict[str, float]]
+) -> dict[str, list[str]]:
+    """Cut each parameter's runs of words from the query."""
+    spans = word_spans(query)
+    return {
+        name: [query[spans[first][0] : spans[last][1]] for first, last in runs]
+        for name, runs in word_runs(query, function, choices).items()
+    }
+
+
 def labels(*names: str) -> dict[str, dict[str, float]]:
     """Build certain token answers for a query, one label per word."""
     return {f"token_{index}": {name: 1.0} for index, name in enumerate(names)}
@@ -246,25 +257,21 @@ def test_coerce_rejects_a_type_it_cannot_read_from_words() -> None:
 def test_word_values_join_adjacent_words_as_written() -> None:
     """A value keeps the query's own spacing and punctuation."""
     query = "drive to New-York fast"
-    values = word_values(
-        query, ROUTE, labels("none", "none", "city", "city", "city", "none")
-    )
+    values = texts(query, ROUTE, labels("none", "none", "city", "city", "city", "none"))
     assert values == {"city": ["New-York"]}
 
 
 def test_word_values_fill_short_gaps_inside_a_scalar_value() -> None:
     """Small unlabelled words inside a name stay in it."""
     query = "go to Stratford upon Avon now"
-    values = word_values(
-        query, ROUTE, labels("none", "none", "city", "none", "city", "none")
-    )
+    values = texts(query, ROUTE, labels("none", "none", "city", "none", "city", "none"))
     assert values == {"city": ["Stratford upon Avon"]}
 
 
 def test_word_values_keep_array_elements_apart() -> None:
     """Gaps are not filled for an array, or its elements would merge."""
     query = "stop at Santa Barbara and Monterey"
-    values = word_values(
+    values = texts(
         query, ROUTE, labels("none", "none", "stops", "stops", "none", "stops")
     )
     assert values == {"stops": ["Santa Barbara", "Monterey"]}
@@ -311,12 +318,12 @@ def test_word_values_fill_a_gap_of_exactly_max_gap_words() -> None:
     """Two unlabelled words inside a name are filled; three are not."""
     query = "see The Lord of the Rings"
     filled = labels("none", "city", "city", "none", "none", "city")
-    assert word_values(query, ROUTE, filled) == {"city": ["The Lord of the Rings"]}
+    assert texts(query, ROUTE, filled) == {"city": ["The Lord of the Rings"]}
 
 
 def test_word_values_do_not_fill_a_gap_holding_another_label() -> None:
     """A gap is filled only if every word in it is unlabelled."""
-    values = word_values("Paris 60 Rome", ROUTE, labels("city", "speed", "city"))
+    values = texts("Paris 60 Rome", ROUTE, labels("city", "speed", "city"))
     assert values == {"city": ["Paris", "Rome"], "speed": ["60"]}
 
 
@@ -326,11 +333,11 @@ def test_word_values_count_a_label_at_exactly_the_threshold() -> None:
         "token_0": {"city": 0.69, "none": 0.31},
         "token_1": {"city": 0.7, "none": 0.3},
     }
-    assert word_values("to Paris", ROUTE, choices) == {"city": ["Paris"]}
+    assert texts("to Paris", ROUTE, choices) == {"city": ["Paris"]}
 
 
-def test_decode_uses_the_first_run_of_a_scalar() -> None:
-    """A scalar takes one value even if two separate runs carry its label."""
+def test_decode_uses_the_first_of_two_equally_strong_runs() -> None:
+    """A scalar takes one value; a tie between runs goes to the earlier one."""
     choices = labels("city", "none", "none", "none", "city")
     assert decode_arguments("Paris or maybe then Rome", ROUTE, choices, {}) == {
         "city": "Paris"
@@ -399,3 +406,49 @@ def test_input_tokens_raises_when_the_response_has_no_usage() -> None:
     response = SystemOneResponse(model="jev-1.13.0", usage=Usage(), answers={})
     with pytest.raises(ValueError, match="no input token usage"):
         input_tokens(response)
+
+
+def test_word_values_bridge_an_unsure_word_inside_a_scalar_string() -> None:
+    """A word the model half-labels joins the confident words on either side."""
+    choices = {
+        "token_0": {"city": 0.9, "none": 0.1},
+        **{f"token_{i}": {"city": 0.35, "none": 0.65} for i in (1, 2, 3)},
+        "token_4": {"city": 0.9, "none": 0.1},
+    }
+    assert texts("my-bot-id", ROUTE, choices) == {"city": ["my-bot-id"]}
+
+
+def test_word_values_do_not_bridge_a_word_below_the_bridge_threshold() -> None:
+    """A long gap is bridged only if every word in it leans to the argument."""
+    choices = {
+        "token_0": {"city": 0.9, "none": 0.1},
+        "token_1": {"city": 0.35, "none": 0.65},
+        "token_2": {"city": 0.29, "none": 0.71},
+        "token_3": {"city": 0.35, "none": 0.65},
+        "token_4": {"city": 0.9, "none": 0.1},
+    }
+    assert texts("my-bot-id", ROUTE, choices) == {"city": ["my", "id"]}
+
+
+def test_word_values_do_not_bridge_array_elements() -> None:
+    """A half-labelled comma between two elements does not merge them."""
+    choices = {
+        "token_0": {"stops": 0.9, "none": 0.1},
+        "token_1": {"stops": 0.45, "none": 0.55},
+        "token_2": {"stops": 0.9, "none": 0.1},
+    }
+    assert texts("Paris, Rome", ROUTE, choices) == {"stops": ["Paris", "Rome"]}
+
+
+def test_decode_takes_the_strongest_run_of_a_scalar_string() -> None:
+    """Of two separate runs, the one with more probability behind it wins."""
+    choices = {
+        "token_0": {"city": 0.75, "none": 0.25},
+        "token_1": {"city": 0.1, "none": 0.9},
+        "token_2": {"city": 0.1, "none": 0.9},
+        "token_3": {"city": 0.1, "none": 0.9},
+        "token_4": {"city": 0.95, "none": 0.05},
+        "token_5": {"city": 0.9, "none": 0.1},
+    }
+    query = "Yosemite which is in Mariposa County"
+    assert decode_arguments(query, ROUTE, choices, {}) == {"city": "Mariposa County"}
