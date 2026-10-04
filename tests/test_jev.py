@@ -10,11 +10,13 @@ from jevtools.jev import (
     coerce,
     decode_arguments,
     input_tokens,
+    question_batches,
+    request_state,
     tool_question,
     word_runs,
     word_spans,
 )
-from jevtools.models import Function, Parameter
+from jevtools.models import Example, Function, Parameter
 from jevtools.spec import FunctionSpec, ParameterSpec, default_spec
 
 
@@ -599,3 +601,78 @@ def test_spec_decoding_omits_what_the_query_does_not_give() -> None:
     )
     arguments = decode_arguments(QUERY, TRIP, TRIP_SPEC, answers, {"stated.mode": 0.2})
     assert arguments == {"where": "Austin, TX", "level": 2}
+
+
+def test_request_state_is_the_query_alone_without_earlier_messages() -> None:
+    """A single-message request sends just the query."""
+    example = Example(id="x", split="simple", query="hi", functions=(), gold=None)
+    assert request_state(example) == {"query": "hi"}
+
+
+def test_request_state_carries_earlier_messages_as_context() -> None:
+    """A system prompt or earlier turn is shown to the model, not labelled."""
+    example = Example(
+        id="x",
+        split="live_multiple",
+        query="and tomorrow?",
+        context=(("system", "Be brief."), ("user", "Weather in Paris?")),
+        functions=(),
+        gold=None,
+    )
+    assert request_state(example) == {
+        "query": "and tomorrow?",
+        "context": [
+            {"role": "system", "content": "Be brief."},
+            {"role": "user", "content": "Weather in Paris?"},
+        ],
+    }
+
+
+def test_word_question_shows_a_window_of_words_in_a_long_query() -> None:
+    """A word far from the edges is shown its 95 nearest words on each side."""
+    query = " ".join(f"w{index}" for index in range(300))
+    question = ask(query, ROUTE)["token_150"]
+    assert isinstance(question.instructions, dict)
+    assert question.instructions["words_before"] == " ".join(
+        f"w{index}" for index in range(55, 150)
+    )
+    assert question.instructions["words_after"] == " ".join(
+        f"w{index}" for index in range(151, 246)
+    )
+
+
+def test_question_batches_keep_a_short_request_whole() -> None:
+    """Questions that fit one request are sent together, in order."""
+    asked = ask("Paris at 60", ROUTE)
+    assert question_batches(asked) == [asked]
+
+
+def test_question_batches_split_a_long_request_without_losing_questions() -> None:
+    """A long query's questions go out in several requests, each within the budget."""
+    asked = ask(" ".join(f"w{index}" for index in range(600)), ROUTE)
+    batches = question_batches(asked)
+    assert len(batches) > 1
+    assert [name for batch in batches for name in batch] == list(asked)
+    assert all(
+        sum(len(question.model_dump_json()) for question in batch.values()) <= 120_000
+        for batch in batches
+    )
+
+
+def test_decode_casts_a_numeric_option_and_keeps_a_named_one() -> None:
+    """An integer argument's option is a number if it reads as one."""
+    spec = TRIP_SPEC.model_copy(
+        update={
+            "parameters": {
+                **TRIP_SPEC.parameters,
+                "level": ParameterSpec(
+                    kind="options", question="q", options={"1": None, "any": None}
+                ),
+            }
+        }
+    )
+    numeric = spec_answers(**{"choice.level": {"1": 0.9, "any": 0.1}})
+    named = spec_answers(**{"choice.level": {"any": 0.9, "1": 0.1}})
+    nouls = {"stated.mode": 0.9}
+    assert decode_arguments(QUERY, TRIP, spec, numeric, nouls)["level"] == 1
+    assert decode_arguments(QUERY, TRIP, spec, named, nouls)["level"] == "any"

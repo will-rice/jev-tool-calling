@@ -16,32 +16,56 @@ the values the model chooses among.
 ## Results
 
 Model `jev-1.13.0`. Mean of three runs, with the range across runs in
-brackets. Call accuracy is BFCL's AST match.
+brackets. Call accuracy is BFCL's AST match. Every row of every split is
+scored; none is left out.
 
-| Split         | Queries | Word labelling   | With spec        |
-| ------------- | ------- | ---------------- | ---------------- |
-| `simple`      | 400     | 66.2 (66.0–66.5) | 74.9 (74.5–75.5) |
-| `multiple`    | 200     | 70.0 (69.0–71.0) | 76.8 (76.5–77.5) |
-| `irrelevance` | 240     | 90.4 (90.4–90.4) | 90.4 (90.4–90.4) |
+| Split              | Queries | Word labelling   | With spec        |
+| ------------------ | ------- | ---------------- | ---------------- |
+| `simple`           | 400     | 66.3 (66.0–66.8) | 74.6 (74.2–74.8) |
+| `multiple`         | 200     | 70.0 (69.5–70.5) | 76.2 (76.0–76.5) |
+| `irrelevance`      | 240     | 90.4 (90.4–90.4) | 90.4 (90.4–90.4) |
+| `live_multiple`    | 1,053   | 46.9 (46.8–46.9) | 66.3 (66.1–66.6) |
+| `live_irrelevance` | 882     | 68.9 (68.7–69.2) | 68.7 (68.6–69.0) |
+| `live_relevance`   | 18      | 100.0 (100–100)  | 98.1 (94.4–100)  |
 
 The two methods differ only in how arguments are asked for. Picking the
 function is the same request in both.
 
-| Metric                           | Split      | Word labelling | With spec    |
-| -------------------------------- | ---------- | -------------- | ------------ |
-| Tool accuracy                    | `simple`   | 99.0           | 99.1         |
-|                                  | `multiple` | 98.8           | 99.0         |
-| Argument accuracy                | `simple`   | 83.1           | 89.2         |
-|                                  | `multiple` | 85.3           | 90.0         |
-| Input tokens per run, all splits |            | 2.93 million   | 2.44 million |
+| Metric            | Split           | Word labelling | With spec |
+| ----------------- | --------------- | -------------- | --------- |
+| Tool accuracy     | `simple`        | 99.1           | 99.0      |
+|                   | `multiple`      | 98.8           | 99.0      |
+|                   | `live_multiple` | 95.4           | 95.4      |
+| Argument accuracy | `simple`        | 83.2           | 89.1      |
+|                   | `multiple`      | 85.2           | 89.5      |
+|                   | `live_multiple` | 69.8           | 84.9      |
 
-- **Call accuracy**: the whole call is right. On `irrelevance` it is the
-  share of queries where Jev called nothing.
+Input tokens per run of all six splits: 12.7 million with word labelling and
+13.2 million with the spec.
+
+- **Call accuracy**: the whole call is right. On the irrelevance splits it
+  is the share of queries where Jev called nothing, and on `live_relevance`
+  the share where it called something.
 - **Tool accuracy**: the share of queries that picked the gold function. On
   `simple` only one function is offered, so it is the share where Jev did
   not abstain.
 - **Argument accuracy**: over arguments the gold answer requires, on queries
   that picked the gold function.
+
+### Which of BFCL v3 this covers
+
+| Categories                                               | Queries | Status                                            |
+| -------------------------------------------------------- | ------- | ------------------------------------------------- |
+| `simple`, `multiple`, `irrelevance`                      | 840     | Reported above                                    |
+| `live_multiple`, `live_irrelevance`, `live_relevance`    | 1,953   | Reported above                                    |
+| `live_simple`                                            | 258     | Dev split: the method was tuned on it (see below) |
+| `parallel`, `parallel_multiple`, and their live versions | 440     | Not yet run: the method emits one call per query  |
+| `java`, `javascript`                                     | 150     | Not yet run: values are read and scored as Python |
+| `sql`, `rest`, `exec_*`                                  | 410     | Not yet run: scored by executing the call         |
+| Multi-turn (5 categories)                                | 1,000   | Not yet run: needs state across turns             |
+
+A category that is not yet run has no score here. It is not counted as zero
+and not folded into any average.
 
 What the numbers say:
 
@@ -54,9 +78,9 @@ What the numbers say:
 
   | Argument                                    | Count | Word labelling | With spec |
   | ------------------------------------------- | ----- | -------------- | --------- |
-  | Closed set: enum, boolean, array of an enum | 121   | 95.0           | 92.6      |
-  | Open value, in the request as written       | 1,134 | 95.5           | 96.0      |
-  | Open value, needs conversion                | 160   | 0              | 47.5      |
+  | Closed set: enum, boolean, array of an enum | 121   | 95.0           | 93.4      |
+  | Open value, in the request as written       | 1,134 | 95.5           | 95.9      |
+  | Open value, needs conversion                | 160   | 0              | 48.1      |
   | Type that is never asked: dict, tuple, any  | 14    | 0              | 0         |
 
 - **Word labelling has a ceiling.** It can only copy. 76.2% of `simple`
@@ -64,13 +88,21 @@ What the numbers say:
   request as written; it gets 87% of those entirely right and none of the
   others.
 - **The spec gets past it.** Of the 136 queries outside that ceiling, the
-  spec method gets 47 right (34.6%), by reading `$1M` as `1000000`, writing
+  spec method gets 48 right (35.3%), by reading `$1M` as `1000000`, writing
   "March 5, 2023" as `2023-03-05`, or choosing `vaporization` for "liquid to
   steam". By the kind the spec gave each argument: dates go from 36% to
-  100%, numbers from 84% to 92%, options from 82% to 96%, places from 91%
+  100%, numbers from 84% to 93%, options from 85% to 96%, places from 91%
   to 98%.
-- **It is also cheaper.** A number or date no longer needs a question per
-  word, so input tokens fall by 17%.
+- **On `simple` and `multiple` it is also cheaper.** A number or date no
+  longer needs a question per word, so those two splits use 17% fewer input
+  tokens. Over all six splits the spec uses 4% more, because the live
+  functions have many options, each with a described line.
+- **The spec matters most on live data.** `live_multiple` goes from 46.9% to
+  66.3%, past its word-labelling ceiling of 57.4%: its functions take many
+  dates, places, and listed values.
+- **Abstaining is harder on live data.** Jev calls nothing on 90% of
+  `irrelevance` queries but only 69% of `live_irrelevance` ones, where the
+  offered functions are closer to the request.
 - **What is left needs reasoning.** Unit conversion (`50mH` to `0.05`),
   arithmetic (`2 pi` to `6.2832`), inference ("from rest" to `0`), outside
   knowledge (`Apple` to `AAPL`), and structured values.
@@ -78,22 +110,38 @@ What the numbers say:
   Jev's answers vary between identical requests, which is about a point.
 
 BFCL rewards rewriting a value, which a model that only selects cannot do
-alone. On the
+alone. Against the
 [BFCL leaderboard](https://gorilla.cs.berkeley.edu/leaderboard.html)'s
-Python columns (109 models, medians of 92% on both, as of its 2026-04-12
-update) the spec method would rank about 101st of 110 on `simple` and 96th
-on `multiple`, and 23rd on `irrelevance` (median 84.6%). The leaderboard
-runs a later release of the dataset than the one pinned here.
+matching Python columns (109 models, as of its 2026-04-12 update), the spec
+method would rank about:
+
+| Split              | With spec | Leaderboard median | Rank of 110 |
+| ------------------ | --------- | ------------------ | ----------- |
+| `simple`           | 74.6      | 92.0               | 101st       |
+| `multiple`         | 76.2      | 92.0               | 96th        |
+| `irrelevance`      | 90.4      | 84.6               | 23rd        |
+| `live_multiple`    | 66.3      | 71.0               | 73rd        |
+| `live_irrelevance` | 68.7      | 77.3               | 78th        |
+| `live_relevance`   | 98.1      | 81.3               | 8th         |
+
+The leaderboard runs a later release of the dataset than the one pinned
+here, so these ranks are approximate.
 
 ## Method
 
 Each query gets two requests, both with the query as state.
 
 1. **Tool.** One `Choice` over the offered functions, each with its
-   description, plus a described `none`. Choosing `none` is abstaining.
+   description, plus a described `none`. Choosing `none` is abstaining. A
+   query offered no function at all is answered with no call.
 2. **Arguments**, for the function Jev picked, asked the way that function's
    spec says. The gold function is never used, so picking the wrong function
    costs the arguments too.
+
+The query is a row's last message. Earlier messages, such as a system prompt
+or a previous turn, are sent with it as context and are not labelled. A long
+query's questions are spread over several requests, and each word question
+shows 95 words on either side of its word.
 
 ### The spec
 
@@ -166,8 +214,9 @@ reported splits. What saw them, and what did not:
   `simple` and showed Jev labelling the word that names an argument.
 - **Chosen on a dev split.** The `none` wording, the 0.7 threshold, and the
   number rule were chosen on `live_simple`, a BFCL split this benchmark does
-  not report (233 of its 258 queries; the rest have a system message, an
-  enum of non-strings, or more than 95 words).
+  not report. At the time only 233 of its 258 queries could be posed; the
+  rest had a system message, an enum of non-strings, or more than 95 words.
+  All 258 are posed now.
 - **Fixed after a first full test run.** A code review of that run found
   that `1,000` was read as `1` and `5-10` as `5` and `-10`. The word pattern
   was corrected and every split run again; the first run scored 66.5, 69.8,
@@ -178,6 +227,13 @@ reported splits. What saw them, and what did not:
   the test splits, and then removed because it fixed as many test queries as
   it broke. Removing it used the test result; the scores are the same with
   and without it.
+- **Every row.** The loader used to leave out rows it could not pose. That
+  would flatter a reported result, so it now poses every row: earlier
+  messages as context, number enums as options, long queries in several
+  requests. The first three splits have no such rows and were unaffected.
+- **The live splits.** `live_multiple`, `live_irrelevance`, and
+  `live_relevance` were run once, after everything above, with no tuning on
+  them. Their specs were written from function definitions only.
 - **The spec method.** The idea came from classifying the test splits'
   out-of-reach arguments by what producing them would take, and the kinds a
   spec can have were chosen from that classification. The spec files were
@@ -192,7 +248,7 @@ reported splits. What saw them, and what did not:
 present, every value among the gold answer's accepted values, and strings
 compared after removing case, spaces, and light punctuation. The package
 itself pins dozens of unrelated dependencies, so it is not a dependency. The
-port agrees with it on all 3,564 calls in the committed test runs, under
+port agrees with it on all 9,591 calls in the committed test runs, under
 both methods, that picked the gold function, and on 600 constructed calls of which 136 are
 wrong. How to repeat the check is in
 [docs/research/2026-10-04-scorer-parity.md](docs/research/2026-10-04-scorer-parity.md).
@@ -203,14 +259,16 @@ wrong. How to repeat the check is in
   (37 of 3,375 parameters) are never asked.
 - The spec is only as good as its author's reading of each description. A
   parameter wrongly made a closed set loses values outside it, which is why
-  closed-set accuracy is slightly lower with the spec (92.6 against 95.0).
+  closed-set accuracy is slightly lower with the spec (93.4 against 95.0).
 - Number candidates cover common written forms only. Units, arithmetic, and
   inferred values are not attempted.
 - A place is completed with a US state or one of about 120 countries.
 - A scalar string takes one run of words carrying its label, and a scalar
   number the first such word that parses.
 - The ceiling ignores overlap between arguments, so it is an upper bound.
-- Parallel, multi-turn, live, and non-Python BFCL splits are not evaluated.
+- Parallel, multi-turn, executed, and non-Python BFCL splits are not yet
+  evaluated; see the table under Results.
+- `live_relevance` has 18 queries, so one query is 5.6 points.
 
 ## What we tried
 
@@ -233,8 +291,9 @@ in
 | Current, with the function's description in the state               | 46.4          | 68.0              |
 | **A spec per function** (pilot)                                     | 55.8          | 76.5              |
 
-"Current" is word labelling as committed. The committed dev runs score 45.1
-and 67.1 for word labelling and 57.1 and 77.2 with the spec; re-running a
+"Current" is word labelling as committed at the time, on the 233 dev queries
+that could then be posed. The committed dev runs cover all 258 and score
+43.8 and 64.3 for word labelling and 54.3 and 74.1 with the spec; re-running a
 configuration moves call accuracy by about a point. Only those runs are
 kept, so the other rows cannot be rescored.
 

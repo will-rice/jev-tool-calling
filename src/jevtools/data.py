@@ -6,43 +6,40 @@ from typing import Any
 
 from huggingface_hub import hf_hub_download
 
-from jevtools.config import DATASET_REPO, DATASET_REVISION, MAX_WORDS
-from jevtools.jev import word_spans
+from jevtools.config import DATASET_REPO, DATASET_REVISION, UNANSWERED
 from jevtools.models import Example, Function, Gold, Parameter, Split
 
 
 def load_examples(split: Split) -> list[Example]:
     """Load a split's queries with their offered functions and gold calls.
 
-    On a split that offers one function per query, the gold function is
-    that function, whatever name the gold file gives it.
+    The query is the last message of a row and any earlier messages are its
+    context. On a split that offers one function per query, the gold
+    function is that function, whatever name the gold file gives it. Splits
+    scored only on whether a call was made have no gold calls.
 
-    Rows the benchmark cannot pose are left out: more than one message, an
-    enum of non-strings, or a query over MAX_WORDS words. The test splits
-    have none; the dev split has 25.
+    Gold answers are paired with rows by position: the two files are in the
+    same order, and one live row's id is misspelled in its gold file.
 
     Args:
         split: The BFCL category to load.
 
     Returns:
-        The split's examples in file order.
+        Every row of the split, in file order.
     """
+    rows = read_rows(f"BFCL_v3_{split}.json")
     answers = (
-        {}
-        if split == "irrelevance"
-        else {
-            row["id"]: row["ground_truth"][0]
-            for row in read_rows(f"possible_answer/BFCL_v3_{split}.json")
-        }
+        [None] * len(rows)
+        if split in UNANSWERED
+        else read_rows(f"possible_answer/BFCL_v3_{split}.json")
     )
     examples = []
-    for row in read_rows(f"BFCL_v3_{split}.json"):
-        if not posable(row):
-            continue
+    for row, answer in zip(rows, answers, strict=True):
         functions = tuple(parse_function(spec) for spec in row["function"])
+        [messages] = row["question"]
         gold = None
-        if split != "irrelevance":
-            [(name, accepted)] = answers[row["id"]].items()
+        if answer is not None:
+            [(name, accepted)] = answer["ground_truth"][0].items()
             gold = Gold(
                 name=name if len(functions) > 1 else functions[0].name,
                 accepted=accepted,
@@ -51,27 +48,15 @@ def load_examples(split: Split) -> list[Example]:
             Example(
                 id=row["id"],
                 split=split,
-                query=row["question"][0][0]["content"],
+                query=messages[-1]["content"],
+                context=tuple(
+                    (message["role"], message["content"]) for message in messages[:-1]
+                ),
                 functions=functions,
                 gold=gold,
             )
         )
     return examples
-
-
-def posable(row: dict[str, Any]) -> bool:
-    """Decide whether a row has the shape the questions are built for."""
-    [messages] = row["question"]
-    return (
-        len(messages) == 1
-        and len(word_spans(messages[0]["content"])) <= MAX_WORDS
-        and all(
-            isinstance(value, str)
-            for function in row["function"]
-            for schema in function["parameters"]["properties"].values()
-            for value in schema.get("enum", schema.get("items", {}).get("enum", ()))
-        )
-    )
 
 
 def parse_function(spec: dict[str, Any]) -> Function:
@@ -86,7 +71,12 @@ def parse_function(spec: dict[str, Any]) -> Function:
                 type=schema["type"],
                 description=schema.get("description"),
                 required=name in required,
-                enum=schema.get("enum", schema.get("items", {}).get("enum", ())),
+                enum=tuple(
+                    str(value)
+                    for value in schema.get(
+                        "enum", schema.get("items", {}).get("enum", ())
+                    )
+                ),
                 item_type=schema.get("items", {}).get("type"),
             )
             for name, schema in spec["parameters"]["properties"].items()

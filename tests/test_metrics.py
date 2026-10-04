@@ -106,6 +106,13 @@ def test_matches_rejects_a_wrong_value() -> None:
     assert not matches(EXAMPLE, call)
 
 
+def test_matches_any_call_on_a_relevance_query() -> None:
+    """A relevance query is right when some function is called, whichever."""
+    relevant = IRRELEVANT.model_copy(update={"split": "live_relevance"})
+    assert matches(relevant, GOOD)
+    assert not matches(relevant, None)
+
+
 def test_matches_abstention_on_an_irrelevant_query() -> None:
     """With no gold call, the right answer is no call."""
     assert matches(IRRELEVANT, None)
@@ -139,6 +146,14 @@ def test_reachable_requires_every_needed_argument() -> None:
     assert not reachable(out_of_reach)
 
 
+def test_reachable_is_false_for_a_gold_argument_the_function_lacks() -> None:
+    """A gold answer naming an argument outside the schema cannot be matched."""
+    odd = EXAMPLE.model_copy(
+        update={"gold": Gold(name="route", accepted={"question": ["why"]})}
+    )
+    assert not reachable(odd)
+
+
 def test_ceiling_on_the_real_data() -> None:
     """With these words and no conversion, 305 and 159 queries are reachable."""
     assert sum(reachable(example) for example in load_examples("simple")) == 305
@@ -157,6 +172,17 @@ def test_evaluate_reports_each_metric_per_split() -> None:
         "simple/argument_accuracy": 0.75,
         "simple/ceiling": 1.0,
         "irrelevance/call_accuracy": 1.0,
+    }
+
+
+def test_evaluate_scores_only_call_accuracy_on_splits_without_gold_calls() -> None:
+    """Live irrelevance and relevance have no arguments or tools to score."""
+    irrelevant = IRRELEVANT.model_copy(update={"split": "live_irrelevance"})
+    relevant = IRRELEVANT.model_copy(update={"split": "live_relevance"})
+    metrics = evaluate([predict(irrelevant, None), predict(relevant, None)])
+    assert metrics == {
+        "live_irrelevance/call_accuracy": 1.0,
+        "live_relevance/call_accuracy": 0.0,
     }
 
 

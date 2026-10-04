@@ -1,12 +1,12 @@
 """Tests for data loading against the real dataset."""
 
 from collections import Counter
+from typing import get_args
 
-from jevtools.config import SPLITS
+import pytest
+
 from jevtools.data import load_examples
-from jevtools.jev import word_spans
-
-DEV_SIZE = 233
+from jevtools.models import Split
 
 
 def test_splits_parse_to_their_known_sizes() -> None:
@@ -16,12 +16,48 @@ def test_splits_parse_to_their_known_sizes() -> None:
     assert len(load_examples("irrelevance")) == 240
 
 
-def test_dev_split_keeps_only_rows_shaped_like_the_test_splits() -> None:
-    """Rows with a system message, a non-string enum, or over 95 words are left out."""
-    examples = load_examples("live_simple")
-    assert len(examples) == DEV_SIZE
-    assert all(example.gold is not None for example in examples)
-    assert max(len(word_spans(example.query)) for example in examples) <= 95
+@pytest.mark.parametrize(
+    ("split", "size"),
+    [
+        ("live_simple", 258),
+        ("live_multiple", 1053),
+        ("live_irrelevance", 882),
+        ("live_relevance", 18),
+    ],
+)
+def test_live_splits_keep_every_row(split: Split, size: int) -> None:
+    """No row is left out, whatever its shape: a skipped row would not be scored."""
+    assert len(load_examples(split)) == size
+
+
+def test_earlier_messages_are_kept_as_context() -> None:
+    """The query is the last user message; anything before it is context."""
+    examples = load_examples("live_multiple")
+    with_system = next(e for e in examples if e.context)
+    assert with_system.context[0][0] == "system"
+    assert with_system.query
+    assert all(e.context == () for e in load_examples("simple"))
+
+
+def test_number_enums_are_kept_as_text_options() -> None:
+    """An enum of numbers is offered as its values' text and still a choice."""
+    parameters = [
+        parameter
+        for example in load_examples("live_multiple")
+        for function in example.functions
+        for parameter in function.parameters
+        if parameter.type == "integer" and parameter.enum
+    ]
+    assert parameters
+    assert all(parameter.kind == "choice" for parameter in parameters)
+    assert all(isinstance(value, str) for p in parameters for value in p.enum)
+
+
+def test_only_answerable_splits_have_gold_calls() -> None:
+    """Irrelevance and relevance splits are scored on whether a call was made."""
+    assert all(e.gold is None for e in load_examples("live_irrelevance"))
+    assert all(e.gold is None for e in load_examples("live_relevance"))
+    assert all(e.gold is not None for e in load_examples("live_multiple"))
 
 
 def test_simple_example_carries_its_query_function_and_parameters() -> None:
@@ -66,7 +102,7 @@ def test_parameter_kinds_across_all_splits() -> None:
     """Almost every parameter is open-valued; 37 cannot be filled at all."""
     kinds = Counter(
         parameter.kind
-        for split in SPLITS["test"]
+        for split in get_args(Split)[:3]
         for example in load_examples(split)
         for function in example.functions
         for parameter in function.parameters

@@ -7,7 +7,9 @@ from pydantic import JsonValue
 from typesafe_sdk import Choice, Noul, SystemOneResponse, TypeSafeClient
 
 from jevtools.config import (
+    BATCH_CHARACTERS,
     BRIDGE_THRESHOLD,
+    CONTEXT_WORDS,
     LABEL_THRESHOLD,
     MAX_BRIDGE,
     MAX_GAP,
@@ -57,7 +59,9 @@ def predict(
     Arguments are asked only for the function the model picked, in the way
     its spec says: the authored one under the spec method, or one derived
     from the schema under the words method. A function with nothing to ask
-    is called with no arguments and no second request.
+    is called with no arguments and no second request, and a long query's
+    questions are spread over several requests. A query offered no function
+    is answered with no call and no request.
 
     Args:
         client: An open TypeSafe client.
@@ -69,7 +73,19 @@ def predict(
         The predicted call, or no call if the model abstained, with every
         answer's probabilities and each request's token usage.
     """
-    state = {"query": example.query}
+    if not example.functions:
+        return Prediction(
+            example=example,
+            method=method,
+            call=None,
+            tool_probabilities={NONE: 1.0},
+            choices={},
+            nouls={},
+            tool_input_tokens=0,
+            argument_input_tokens=0,
+            model=MODEL,
+        )
+    state = request_state(example)
     tool_response = client.system_one(
         state, {"tool": tool_question(example.functions)}, model=MODEL
     )
@@ -82,13 +98,13 @@ def predict(
         function = next(f for f in example.functions if f.name == tool.choice)
         spec = specs[function.key] if method == "spec" else default_spec(function)
         questions = argument_questions(example.query, function, spec)
-        if questions:
-            response = client.system_one(state, questions, model=MODEL)
-            choices = {
+        for batch in question_batches(questions):
+            response = client.system_one(state, batch, model=MODEL)
+            choices |= {
                 name: answer.probabilities for name, answer in response.choices.items()
             }
-            nouls = {name: answer.noul for name, answer in response.nouls.items()}
-            argument_input_tokens = input_tokens(response)
+            nouls |= {name: answer.noul for name, answer in response.nouls.items()}
+            argument_input_tokens += input_tokens(response)
         call = Call(
             name=function.name,
             arguments=decode_arguments(example.query, function, spec, choices, nouls),
@@ -104,6 +120,41 @@ def predict(
         argument_input_tokens=argument_input_tokens,
         model=tool_response.model,
     )
+
+
+def request_state(example: Example) -> dict[str, JsonValue]:
+    """Build the state every question about an example is asked against.
+
+    It is the query, with any earlier messages as context: a system prompt
+    or previous turn is shown to the model, but only the query is labelled.
+    """
+    state: dict[str, JsonValue] = {"query": example.query}
+    if example.context:
+        state["context"] = [
+            {"role": role, "content": content} for role, content in example.context
+        ]
+    return state
+
+
+def question_batches(
+    questions: Mapping[str, Choice | Noul],
+) -> list[dict[str, Choice | Noul]]:
+    """Split questions into requests of at most BATCH_CHARACTERS each.
+
+    One request has a limit on its questions' combined size, which a long
+    query's per-word questions exceed. Order is kept, and no questions
+    means no requests.
+    """
+    batches: list[dict[str, Choice | Noul]] = []
+    size = BATCH_CHARACTERS
+    for name, question in questions.items():
+        length = len(question.model_dump_json())
+        if size + length > BATCH_CHARACTERS:
+            batches.append({})
+            size = 0
+        batches[-1][name] = question
+        size += length
+    return batches
 
 
 def tool_question(functions: Sequence[Function]) -> Choice:
@@ -133,7 +184,8 @@ def argument_questions(
 
     - text, and the city of a place: one question per word of the query,
       shared by all such parameters, asking which of them the word supplies.
-      The word and the words on either side of it are labelled fields, and
+      The word and up to CONTEXT_WORDS words on either side of it are
+      labelled fields, so a long query's questions do not each repeat it, and
       the none option says that a word naming or introducing an argument is
       none: without that, the model labels "base" in "a base of 10" too.
     - number: one Choice over the numbers code found in the query.
@@ -165,9 +217,13 @@ def argument_questions(
             questions[f"token_{index}"] = Choice(
                 instructions={
                     "function": function.name,
-                    "words_before": " ".join(words[:index]),
+                    "words_before": " ".join(
+                        words[max(0, index - CONTEXT_WORDS) : index]
+                    ),
                     "word": word,
-                    "words_after": " ".join(words[index + 1 :]),
+                    "words_after": " ".join(
+                        words[index + 1 : index + 1 + CONTEXT_WORDS]
+                    ),
                     "question": (
                         "Which argument of `function` does `word` supply in "
                         f"`query`? Answer {NONE} if it supplies no argument."
@@ -346,6 +402,16 @@ def decode_arguments(
     return arguments
 
 
+def typed(option: str, value_type: str) -> JsonValue:
+    """Read a chosen option as its parameter's type, or keep it as written.
+
+    An integer parameter's options are usually numbers but can be a word
+    such as "dontcare", which is passed through.
+    """
+    value = coerce(option, value_type)
+    return option if value is None else value
+
+
 def decode_value(
     parameter: Parameter,
     entry: ParameterSpec,
@@ -368,20 +434,18 @@ def decode_value(
         options = choices[question]
         return max(options, key=lambda option: options[option])
 
-    read = {"integer": int, "float": float, "string": str}
-
     match entry.kind:
         case "text":
             return copied
         case "number":
             number = chosen(f"number.{name}") if f"number.{name}" in choices else NONE
-            return None if number == NONE else read[parameter.type](number)
+            return None if number == NONE else typed(number, parameter.type)
         case "options":
             option = chosen(f"choice.{name}")
             return (
                 copied
                 if entry.open and option == OTHER
-                else read[parameter.type](option)
+                else typed(option, parameter.type)
             )
         case "flag":
             return nouls[f"flag.{name}"] >= THRESHOLD

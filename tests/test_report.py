@@ -36,8 +36,4 @@ def test_load_runs_reads_every_split_of_each_run(
             )
     runs = load_runs("test", "words")
     assert len(runs) == RUNS["test"]
-    assert [p.example.id for p in runs[0]] == [
-        "simple_0",
-        "multiple_0",
-        "irrelevance_0",
-    ]
+    assert [p.example.id for p in runs[0]] == [f"{split}_0" for split in SPLITS["test"]]
