@@ -81,7 +81,7 @@ def test_gold_must_name_an_offered_function() -> None:
             split="simple",
             query="q",
             functions=(AREA,),
-            gold=Gold(name="other", accepted={}),
+            gold=(Gold(name="other", accepted={}),),
         )
 
 
@@ -92,7 +92,7 @@ def test_target_returns_the_gold_function_and_accepted_values() -> None:
         split="simple",
         query="q",
         functions=(AREA,),
-        gold=Gold(name="triangle.area", accepted={"base": [10]}),
+        gold=(Gold(name="triangle.area", accepted={"base": [10]}),),
     )
     assert example.target == (AREA, {"base": [10]})
 
@@ -100,7 +100,7 @@ def test_target_returns_the_gold_function_and_accepted_values() -> None:
 def test_target_raises_when_there_is_no_gold_call() -> None:
     """An irrelevance example has nothing to score arguments against."""
     example = Example(
-        id="x", split="irrelevance", query="q", functions=(AREA,), gold=None
+        id="x", split="irrelevance", query="q", functions=(AREA,), gold=()
     )
     with pytest.raises(ValueError, match="no gold call"):
         _ = example.target
@@ -114,13 +114,15 @@ def test_prediction_survives_a_json_round_trip() -> None:
             split="simple",
             query="base 10",
             functions=(AREA,),
-            gold=Gold(
-                name="triangle.area", accepted={"base": [10], "unit": ["", "cm"]}
+            gold=(
+                Gold(name="triangle.area", accepted={"base": [10], "unit": ["", "cm"]}),
             ),
         ),
         method="spec",
-        call=Call(
-            name="triangle.area", arguments={"base": 10, "ratio": 2.5, "on": True}
+        calls=(
+            Call(
+                name="triangle.area", arguments={"base": 10, "ratio": 2.5, "on": True}
+            ),
         ),
         tool_probabilities={"triangle.area": 0.9, "none": 0.1},
         choices={"token_0": {"base": 0.2, "none": 0.8}},
@@ -131,6 +133,13 @@ def test_prediction_survives_a_json_round_trip() -> None:
     )
     reloaded = Prediction.model_validate_json(prediction.model_dump_json())
     assert reloaded == prediction
-    assert reloaded.call is not None
-    assert type(reloaded.call.arguments["base"]) is int
-    assert type(reloaded.call.arguments["on"]) is bool
+    assert type(reloaded.calls[0].arguments["base"]) is int
+    assert type(reloaded.calls[0].arguments["on"]) is bool
+
+
+def test_function_summary_describes_the_function_and_its_arguments() -> None:
+    """What the model is shown of a function includes each argument's meaning."""
+    assert AREA.summary == {
+        "description": "Area of a triangle.",
+        "arguments": {"base": "The base."},
+    }

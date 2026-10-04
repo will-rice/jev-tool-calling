@@ -55,9 +55,9 @@ def test_number_enums_are_kept_as_text_options() -> None:
 
 def test_only_answerable_splits_have_gold_calls() -> None:
     """Irrelevance and relevance splits are scored on whether a call was made."""
-    assert all(e.gold is None for e in load_examples("live_irrelevance"))
-    assert all(e.gold is None for e in load_examples("live_relevance"))
-    assert all(e.gold is not None for e in load_examples("live_multiple"))
+    assert all(e.gold == () for e in load_examples("live_irrelevance"))
+    assert all(e.gold == () for e in load_examples("live_relevance"))
+    assert all(len(e.gold) == 1 for e in load_examples("live_multiple"))
 
 
 def test_simple_example_carries_its_query_function_and_parameters() -> None:
@@ -79,23 +79,23 @@ def test_simple_example_carries_its_query_function_and_parameters() -> None:
 def test_multiple_example_carries_accepted_values_and_omittable_arguments() -> None:
     """Gold keeps every accepted value, with "" marking an omittable argument."""
     example = load_examples("multiple")[0]
-    assert example.gold is not None
-    assert example.gold.name == "triangle_properties.get"
-    assert example.gold.accepted["side1"] == [5]
-    assert example.gold.accepted["get_area"] == ["", True]
+    [gold] = example.gold
+    assert gold.name == "triangle_properties.get"
+    assert gold.accepted["side1"] == [5]
+    assert gold.accepted["get_area"] == ["", True]
     assert len(example.functions) > 1
 
 
 def test_simple_gold_is_the_one_offered_function() -> None:
     """A gold key without the module prefix resolves to the offered function."""
     example = next(e for e in load_examples("simple") if e.id == "simple_363")
-    assert example.gold is not None
-    assert example.gold.name == "restaurant_search.find_closest"
+    [gold] = example.gold
+    assert gold.name == "restaurant_search.find_closest"
 
 
 def test_irrelevance_examples_have_no_gold_call() -> None:
     """No offered function fits an irrelevance query."""
-    assert all(example.gold is None for example in load_examples("irrelevance"))
+    assert all(example.gold == () for example in load_examples("irrelevance"))
 
 
 def test_parameter_kinds_across_all_splits() -> None:
@@ -108,3 +108,27 @@ def test_parameter_kinds_across_all_splits() -> None:
         for parameter in function.parameters
     )
     assert kinds == {"words": 3016, "choice": 111, "flag": 137, "set": 74, None: 37}
+
+
+@pytest.mark.parametrize(
+    ("split", "size"),
+    [
+        ("parallel", 200),
+        ("parallel_multiple", 200),
+        ("live_parallel", 16),
+        ("live_parallel_multiple", 24),
+    ],
+)
+def test_parallel_splits_have_several_gold_calls(split: Split, size: int) -> None:
+    """A parallel query's gold answer is two or more calls."""
+    examples = load_examples(split)
+    assert len(examples) == size
+    assert all(len(example.gold) >= 2 for example in examples)
+
+
+def test_parallel_gold_keeps_each_call_in_order() -> None:
+    """Each gold call carries its own function and accepted values."""
+    example = load_examples("parallel")[0]
+    assert [gold.name for gold in example.gold] == ["spotify.play", "spotify.play"]
+    assert example.gold[0].accepted == {"artist": ["Taylor Swift"], "duration": [20]}
+    assert example.gold[1].accepted == {"artist": ["Maroon 5"], "duration": [15]}

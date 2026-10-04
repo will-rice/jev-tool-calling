@@ -1,3 +1,5 @@
+# BFCL's result and score files are kept exactly as its runner wrote them.
+exclude: ^bfcl/(result|score)/
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0

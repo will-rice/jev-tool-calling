@@ -265,6 +265,81 @@ come from the committed code, which differs in one way: an open option's
 unlisted value is copied from the request by word labelling, where the pilot
 reused the earlier run's value.
 
+## Fifth round: several calls from one request
+
+BFCL's parallel categories ask for two to eight calls from one request,
+mostly one function called with different values. Developed on
+`exec_parallel` (50 queries) and `exec_parallel_multiple` (40), two legacy
+BFCL splits that are not leaderboard categories.
+
+### Filling the calls
+
+| Approach                                                    | All calls right |
+| ----------------------------------------------------------- | --------------- |
+| Label once, zip each parameter's values by position         | 48              |
+| The same, a repeated value shared and arrays split per call | 52              |
+| The same, Jev choosing between two readings of a number     | 58              |
+| Asking each call's arguments separately ("the second call") | 22 to 24        |
+| Asking which call each value belongs to                     | 50              |
+
+- **Zipping by position** keeps every value labelled for a parameter, in
+  order, and gives the first of each to the first call. It needs no request
+  beyond the labelling.
+- **Asking per call** told the model there were n calls and to answer for
+  the kth. It labelled words from every call anyway.
+- **The grouping question** named each call by one parameter's value and
+  asked which call every other value belongs to. It fixed nothing: of 24
+  failing queries, 16 needed a value that is not in the request, 5 had the
+  wrong number of calls, and 3 were grouped or labelled wrongly.
+- **Readings.** A labelled number that can be read two ways gets a Choice
+  between them, with the parameter's description. Four queries had such a
+  number and three became right.
+
+### Choosing how many
+
+Asked directly how many times a function must be called, Jev was right on
+98% of `exec_parallel` queries; counting the zipped values was right on
+76%. Asked how many different functions a request needs, it was right on
+97.5% of `exec_parallel_multiple` queries.
+
+BFCL does not say which queries are parallel, so these questions are asked
+of every query, and they must answer one on a single-call query:
+
+| Decision                                  | `simple` | `multiple` | `live_multiple` | parallel dev |
+| ----------------------------------------- | -------- | ---------- | --------------- | ------------ |
+| Count, taking its top answer              | 97.3     |            |                 | 98.0         |
+| Count, more than one only if p(one) < 0.2 | 99.3     |            |                 | 96.0         |
+| A yes/no per function, at 0.5             |          | 86.5       | 73.7            | 90.0         |
+| Different functions, top answer           |          | 97.0       | 95.3            | 97.5         |
+| The same, several only if p(one) < 0.1    |          | 98.5       | 99.7            | 97.5         |
+
+A yes/no per function says yes to too many functions on a single-call
+query. The count of different functions, acted on only when confident,
+keeps single-call queries intact, and the yes/no answers then only rank
+which functions to take.
+
+One interaction was found on the test split itself: the tool question asks
+for one function and answers `none` for a request that needs two, so 169 of
+200 `parallel_multiple` queries abstained. A confident "several functions"
+answer now overrides `none` when at least two functions are each judged
+needed. On `live_irrelevance` that turns 6 of 882 correct abstentions into
+calls.
+
+## The official runner
+
+The numbers in the README are BFCL's: `bfcl/handler.py` plugs this project's
+prediction into `bfcl-eval`, which loads BFCL v4, runs every entry, and
+scores it. The first official run found a bug the project's own runner
+could not have: BFCL appends a sentence about Python syntax to every
+function description, so no function matched the key its spec was written
+under, and a fallback silently used the schema-derived spec. Both methods
+scored the same, with identical token counts. The handler now removes the
+sentence and the fallback applies only to Java and JavaScript, which have
+no spec.
+
+With word labelling, where that bug made no difference, BFCL's scores and
+this project's runner agree to within a point on every shared category.
+
 ## What is left
 
 With the adopted configuration, of dev's 233 queries 18 are lost to

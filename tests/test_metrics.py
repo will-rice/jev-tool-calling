@@ -27,17 +27,19 @@ EXAMPLE = Example(
     split="simple",
     query="Drive to New York at 60 via Santa Barbara and Monterey",
     functions=(ROUTE,),
-    gold=Gold(
-        name="route",
-        accepted={
-            "city": ["New York", "NYC"],
-            "speed": ["", 60.0],
-            "stops": [["Santa Barbara", "Monterey"]],
-        },
+    gold=(
+        Gold(
+            name="route",
+            accepted={
+                "city": ["New York", "NYC"],
+                "speed": ["", 60.0],
+                "stops": [["Santa Barbara", "Monterey"]],
+            },
+        ),
     ),
 )
 IRRELEVANT = Example(
-    id="irrelevance_x", split="irrelevance", query="q", functions=(ROUTE,), gold=None
+    id="irrelevance_x", split="irrelevance", query="q", functions=(ROUTE,), gold=()
 )
 GOOD = Call(
     name="route",
@@ -45,12 +47,17 @@ GOOD = Call(
 )
 
 
+def match(example: Example, call: Call | None) -> bool:
+    """Score one predicted call, or none, against an example."""
+    return matches(example, () if call is None else (call,))
+
+
 def predict(example: Example, call: Call | None) -> Prediction:
     """Wrap a call as a saved prediction."""
     return Prediction(
         example=example,
         method="words",
-        call=call,
+        calls=() if call is None else (call,),
         tool_probabilities={},
         choices={},
         nouls={},
@@ -75,48 +82,48 @@ def test_accepts_compares_lists_in_order() -> None:
 
 def test_matches_a_call_that_omits_an_omittable_argument() -> None:
     """Leaving out an argument the gold marks optional is still right."""
-    assert matches(EXAMPLE, GOOD)
+    assert match(EXAMPLE, GOOD)
 
 
 def test_matches_rejects_no_call_and_the_wrong_function() -> None:
     """Abstaining or calling another function is wrong when a call is expected."""
-    assert not matches(EXAMPLE, None)
-    assert not matches(EXAMPLE, Call(name="other", arguments=GOOD.arguments))
+    assert not match(EXAMPLE, None)
+    assert not match(EXAMPLE, Call(name="other", arguments=GOOD.arguments))
 
 
 def test_matches_rejects_a_missing_required_argument() -> None:
     """A required parameter must be present."""
-    assert not matches(EXAMPLE, Call(name="route", arguments={"stops": ["a"]}))
+    assert not match(EXAMPLE, Call(name="route", arguments={"stops": ["a"]}))
 
 
 def test_matches_rejects_a_missing_argument_the_gold_does_not_mark_optional() -> None:
     """An argument that is optional in the schema can still be needed."""
-    assert not matches(EXAMPLE, Call(name="route", arguments={"city": "NYC"}))
+    assert not match(EXAMPLE, Call(name="route", arguments={"city": "NYC"}))
 
 
 def test_matches_rejects_an_argument_the_gold_does_not_list() -> None:
     """An argument with no accepted values is unexpected."""
     call = Call(name="route", arguments={**GOOD.arguments, "extra": "x"})
-    assert not matches(EXAMPLE, call)
+    assert not match(EXAMPLE, call)
 
 
 def test_matches_rejects_a_wrong_value() -> None:
     """Every value must be one of its accepted values."""
     call = Call(name="route", arguments={**GOOD.arguments, "speed": 70.0})
-    assert not matches(EXAMPLE, call)
+    assert not match(EXAMPLE, call)
 
 
 def test_matches_any_call_on_a_relevance_query() -> None:
     """A relevance query is right when some function is called, whichever."""
     relevant = IRRELEVANT.model_copy(update={"split": "live_relevance"})
-    assert matches(relevant, GOOD)
-    assert not matches(relevant, None)
+    assert match(relevant, GOOD)
+    assert not match(relevant, None)
 
 
 def test_matches_abstention_on_an_irrelevant_query() -> None:
     """With no gold call, the right answer is no call."""
-    assert matches(IRRELEVANT, None)
-    assert not matches(IRRELEVANT, GOOD)
+    assert match(IRRELEVANT, None)
+    assert not match(IRRELEVANT, GOOD)
 
 
 def test_expressible_finds_a_value_in_the_query() -> None:
@@ -141,7 +148,7 @@ def test_reachable_requires_every_needed_argument() -> None:
     """An example counts toward the ceiling only if nothing is out of reach."""
     assert reachable(EXAMPLE)
     out_of_reach = EXAMPLE.model_copy(
-        update={"gold": Gold(name="route", accepted={"city": ["Boston"]})}
+        update={"gold": (Gold(name="route", accepted={"city": ["Boston"]}),)}
     )
     assert not reachable(out_of_reach)
 
@@ -149,7 +156,7 @@ def test_reachable_requires_every_needed_argument() -> None:
 def test_reachable_is_false_for_a_gold_argument_the_function_lacks() -> None:
     """A gold answer naming an argument outside the schema cannot be matched."""
     odd = EXAMPLE.model_copy(
-        update={"gold": Gold(name="route", accepted={"question": ["why"]})}
+        update={"gold": (Gold(name="route", accepted={"question": ["why"]}),)}
     )
     assert not reachable(odd)
 
@@ -201,3 +208,42 @@ def test_evaluate_rejects_a_split_where_no_tool_was_right() -> None:
 def test_summarize_gives_mean_and_range_per_metric() -> None:
     """Runs are summarised by their mean, minimum, and maximum."""
     assert summarize([{"m": 0.2}, {"m": 0.4}]) == {"m": (pytest.approx(0.3), 0.2, 0.4)}
+
+
+PAIR = EXAMPLE.model_copy(
+    update={
+        "split": "parallel",
+        "gold": (
+            Gold(name="route", accepted={"city": ["Paris"], "speed": ["", 60.0]}),
+            Gold(name="route", accepted={"city": ["Rome"], "speed": ["", 60.0]}),
+        ),
+    }
+)
+
+
+def test_matches_several_calls_in_any_order() -> None:
+    """Every gold call must be matched by its own predicted call, in any order."""
+    paris = Call(name="route", arguments={"city": "Paris"})
+    rome = Call(name="route", arguments={"city": "Rome", "speed": 60.0})
+    assert matches(PAIR, (rome, paris))
+    assert not matches(PAIR, (paris,))
+    assert not matches(PAIR, (paris, paris))
+    assert not matches(PAIR, (paris, rome, rome))
+
+
+def test_evaluate_reports_call_and_count_accuracy_on_a_parallel_split() -> None:
+    """A parallel split is scored on the whole set of calls and on their number."""
+    paris = Call(name="route", arguments={"city": "Paris"})
+    rome = Call(name="route", arguments={"city": "Rome"})
+    oslo = Call(name="route", arguments={"city": "Oslo"})
+
+    def predicted(*calls: Call) -> Prediction:
+        return predict(PAIR, None).model_copy(update={"calls": calls})
+
+    metrics = evaluate(
+        [predicted(paris, rome), predicted(paris, oslo), predicted(paris)]
+    )
+    assert metrics == {
+        "parallel/call_accuracy": pytest.approx(1 / 3),
+        "parallel/count_accuracy": pytest.approx(2 / 3),
+    }

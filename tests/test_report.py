@@ -20,10 +20,10 @@ def test_load_runs_reads_every_split_of_each_run(
         for split in SPLITS["test"]:
             prediction = Prediction(
                 example=Example(
-                    id=f"{split}_0", split=split, query="q", functions=(), gold=None
+                    id=f"{split}_0", split=split, query="q", functions=(), gold=()
                 ),
                 method="words",
-                call=None,
+                calls=(),
                 tool_probabilities={},
                 choices={},
                 nouls={},

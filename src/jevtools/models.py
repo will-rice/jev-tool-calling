@@ -13,6 +13,10 @@ Split = Literal[
     "live_multiple",
     "live_irrelevance",
     "live_relevance",
+    "parallel",
+    "parallel_multiple",
+    "live_parallel",
+    "live_parallel_multiple",
 ]
 Stage = Literal["dev", "test"]
 Method = Literal["words", "spec"]
@@ -59,6 +63,20 @@ class Function(BaseModel, frozen=True):
     parameters: tuple[Parameter, ...]
 
     @property
+    def summary(self) -> dict[str, str | dict[str, str | None]]:
+        """What the model is shown of the function when deciding whether to call it.
+
+        Its description and each argument's description, so a function that
+        sounds right but takes the wrong inputs can be told apart.
+        """
+        return {
+            "description": self.description,
+            "arguments": {
+                parameter.name: parameter.description for parameter in self.parameters
+            },
+        }
+
+    @property
     def key(self) -> str:
         """A stable identifier for this exact definition, used to find its spec."""
         return sha1(self.model_dump_json().encode()).hexdigest()[:16]
@@ -75,10 +93,12 @@ class Gold(BaseModel, frozen=True):
 
 
 class Example(BaseModel, frozen=True):
-    """A query with the functions offered for it and its gold call, if any.
+    """A query with the functions offered for it and its gold calls.
 
     The query is the last user message. `context` holds any messages before
-    it as (role, content) pairs.
+    it as (role, content) pairs. `gold` is empty when the right answer is
+    judged only on whether a call was made, has one call on a single-call
+    split, and several on a parallel split.
     """
 
     id: str
@@ -86,32 +106,32 @@ class Example(BaseModel, frozen=True):
     query: str
     context: tuple[tuple[str, str], ...] = ()
     functions: tuple[Function, ...]
-    gold: Gold | None
+    gold: tuple[Gold, ...]
 
     @model_validator(mode="after")
     def check_gold_is_offered(self) -> Self:
         """Reject a gold call to a function the example does not offer."""
         offered = [function.name for function in self.functions]
-        if self.gold is not None and self.gold.name not in offered:
-            raise ValueError(
-                f"Gold function {self.gold.name} is not offered: {offered}"
-            )
+        for gold in self.gold:
+            if gold.name not in offered:
+                raise ValueError(f"Gold function {gold.name} is not offered: {offered}")
         return self
+
+    def function(self, name: str) -> Function:
+        """Return the offered function with a name."""
+        return next(function for function in self.functions if function.name == name)
 
     @property
     def target(self) -> tuple[Function, dict[str, list[JsonValue]]]:
-        """The gold function and each of its arguments' accepted values.
+        """The one gold function and each of its arguments' accepted values.
 
         Raises:
-            ValueError: If the example has no gold call.
+            ValueError: If the example does not have exactly one gold call.
         """
-        if self.gold is None:
-            raise ValueError(f"{self.id} has no gold call")
-        name = self.gold.name
-        function = next(
-            function for function in self.functions if function.name == name
-        )
-        return function, self.gold.accepted
+        if len(self.gold) != 1:
+            raise ValueError(f"{self.id} has no gold call, or several")
+        [gold] = self.gold
+        return self.function(gold.name), gold.accepted
 
 
 class Call(BaseModel, frozen=True):
@@ -124,13 +144,13 @@ class Call(BaseModel, frozen=True):
 class Prediction(BaseModel, frozen=True):
     """The saved record for one query.
 
-    `call` is None when the model abstained. `choices` and `nouls` hold the
+    `calls` is empty when the model abstained. `choices` and `nouls` hold the
     argument request's answers by question name.
     """
 
     example: Example
     method: Method
-    call: Call | None
+    calls: tuple[Call, ...]
     tool_probabilities: dict[str, float]
     choices: dict[str, dict[str, float]]
     nouls: dict[str, float]
