@@ -1,6 +1,6 @@
 # Jev on BFCL: zero-shot tool calling
 
-Status: draft, awaiting review.
+Status: implemented. See README.md for results.
 
 ## Goal
 
@@ -233,6 +233,27 @@ B(1,2)`, whitespace words give `pointA` the single word `A(3,4)`; split
   `height` and `5` as `height`. Decoding as specified then fills the gap,
   reads `base of 10`, fails to parse a number, and omits the argument. This
   was not seen on SNIPS, where slot names rarely appear in the utterance.
+
+## Dev-split revision
+
+Added after the first live run, which scored 28% call accuracy on 20
+`simple` queries whose ceiling was 100%. BFCL has no train split, so the
+fixes were developed on `live_simple` (233 usable queries), which is run as
+a `dev` stage and never reported as a result. See
+`docs/research/2026-10-04-argument-decoding.md`. This supersedes the word
+question and decoding described above.
+
+- The `none` option of the word question says that a word which only names
+  or introduces an argument is `none`.
+- A word's label counts only at `LABEL_THRESHOLD = 0.7` probability or more.
+- A number is read word by word: a number parameter takes the first labelled
+  word that parses, and a number array every labelled word that parses.
+  Merging and gap filling apply to strings only.
+- `run` and `report` take a required `stage` argument: `dev` runs
+  `live_simple` once, `test` runs the three reported splits three times.
+- Rows the questions cannot pose are left out when loading: more than one
+  message, an enum of non-strings, or more than `MAX_WORDS = 95` words. The
+  test splits have none; `live_simple` has 25.
 
 ## Testing
 
