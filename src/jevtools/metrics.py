@@ -7,6 +7,7 @@ from typing import get_args
 
 from pydantic import JsonValue
 
+from jevtools.config import UNANSWERED
 from jevtools.jev import coerce, word_spans
 from jevtools.models import Call, Example, Parameter, Prediction, Split
 
@@ -32,7 +33,7 @@ def evaluate(predictions: Sequence[Prediction]) -> dict[str, float]:
         metrics[f"{split}/call_accuracy"] = fmean(
             matches(p.example, p.call) for p in rows
         )
-        if split == "irrelevance":
+        if split in UNANSWERED:
             continue
         metrics[f"{split}/tool_accuracy"] = fmean(
             p.call is not None and p.call.name == p.example.target[0].name for p in rows
@@ -92,11 +93,14 @@ def matches(example: Example, call: Call | None) -> bool:
 
 
 def reachable(example: Example) -> bool:
-    """Decide whether every needed gold argument can be produced from words."""
+    """Decide whether every needed gold argument can be produced from words.
+
+    A gold argument the function does not have cannot be.
+    """
     function, accepted = example.target
     parameters = {parameter.name: parameter for parameter in function.parameters}
     return all(
-        expressible(example.query, parameters[name], values)
+        name in parameters and expressible(example.query, parameters[name], values)
         for name, values in accepted.items()
         if "" not in values
     )
