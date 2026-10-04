@@ -54,10 +54,16 @@ every record keeps each word's option probabilities, so a decoding rule can
 be changed without asking the model again.
 
 The committed dev run, `results/live_simple-run1.jsonl`, is a fresh run of
-the adopted configuration and scores 43.3 and 65.9. On that run the
-threshold makes no difference to call accuracy (43.3 with or without it),
-so its 1.3-point gain in the table is within run-to-run variation. It is
-kept because it never scored lower.
+the adopted configuration and scores 43.3 and 66.1. On a run of that
+configuration the threshold made no difference to call accuracy (43.3 with
+or without it), so its 1.3-point gain in the table is within run-to-run
+variation. It is kept because it never scored lower.
+
+The committed run also has a corrected word pattern. The runs in the table
+split `1,000` into three words and read `5-10` as `5` and `-10`; with
+numbers read word by word that decoded `1,000` as `1`. The fix came from
+code review after the first test run and moved dev call accuracy by nothing
+and argument accuracy from 65.9 to 66.1.
 
 The earlier runs in the table were not kept: the first version's answers
 were overwritten by the committed run.

@@ -18,8 +18,8 @@ brackets.
 
 | Split         | Queries | Tool accuracy    | Argument accuracy | Call accuracy    | Ceiling |
 | ------------- | ------- | ---------------- | ----------------- | ---------------- | ------- |
-| `simple`      | 400     | 99.0 (99.0–99.0) | 83.4 (83.1–83.7)  | 66.5 (66.0–66.8) | 76.2    |
-| `multiple`    | 200     | 99.0 (99.0–99.0) | 85.4 (85.4–85.6)  | 69.8 (69.5–70.0) | 79.5    |
+| `simple`      | 400     | 99.0 (99.0–99.0) | 83.5 (83.4–83.5)  | 66.8 (66.8–66.8) | 76.2    |
+| `multiple`    | 200     | 99.0 (99.0–99.0) | 85.1 (84.9–85.4)  | 69.8 (69.0–70.5) | 79.5    |
 | `irrelevance` | 240     |                  |                   | 90.4 (90.4–90.4) |         |
 
 - **Call accuracy** is BFCL's AST match, the rule behind the leaderboard's
@@ -41,22 +41,26 @@ What the numbers say:
   99% of queries, whether one function is offered or up to four, and calls
   nothing on 90% of the queries no offered function fits.
 - **Where the value is in the request, labelling words finds it.** Of the
-  queries within reach, 87% come out entirely right (86.6% on `simple`,
-  87.4% on `multiple`, first run). No query outside the ceiling is ever
+  queries within reach, 88% come out entirely right (87.5% on `simple`,
+  88.1% on `multiple`, first run). No query outside the ceiling is ever
   right.
 - **The ceiling is the larger loss.** About a quarter of `simple` queries and
   a fifth of `multiple` queries need a value that is not in the request as
-  written: `$1M` for `1000000`, `50mH` for `0.05`, `x^2` for `x**2`, a date
-  in another format, or a dict. That is 112 of the 162 required arguments
-  missed on `simple` (first run, queries that picked the gold function).
-- **The remaining misses are mostly string boundaries.** 29 of the 50 other
-  misses on `simple` are strings cut one word too long or too short.
+  written: `$1M` for `1000000`, `50mH` for `0.05`, `x^2` for `x**2`, or a date
+  in another format. On `simple` (first run, queries that picked the gold
+  function) 158 required arguments are missed: 113 are not in the request
+  as written and 10 are of a type that is never asked, such as a dict.
+- **The remaining misses are mostly strings.** 24 of the other 35 are
+  strings decoded to text the gold answer does not accept.
 - **How `none` is described matters most.** On a dev split, telling the
   model that a word which names or introduces an argument is `none` lifted
-  call accuracy from 24.5% to 42.5%. See [What we tried](#what-we-tried).
+  call accuracy from 27.9% to 42.5% with the decoding held fixed. See
+  [What we tried](#what-we-tried).
+- **The range across runs is not a confidence interval.** It shows how much
+  Jev's answers vary between identical requests, which is under a point.
 
 Input tokens per run of all three splits: 317,876 for the tool question and
-2,626,216 for the arguments.
+2,618,254 for the arguments.
 
 ## Method
 
@@ -99,14 +103,25 @@ picking the wrong function costs the arguments too.
 
 ### Dev and test
 
-BFCL has no train split. The first version scored 28% on a 20-query check,
-and fixing it on the reported splits would have tuned the method on its own
-test set. The `none` wording, the 0.7 threshold, and the number rule were
-chosen on `live_simple`, a BFCL split this benchmark does not report (233 of
-its 258 queries; the rest have a system message, an enum of non-strings, or
-more than 95 words). The test splits were then run once with that
-configuration. The 20 queries per test split seen in the earlier check are
-the only test data looked at before the reported run.
+BFCL has no train split, so the method was not developed blind to the
+reported splits. What saw them, and what did not:
+
+- **Designed against the test queries and gold answers, without the model.**
+  What counts as a word, which parameter types are asked and how, the rule
+  that arrays get no gap filling, the 95-word limit, and the ceiling were
+  worked out offline on `simple` and `multiple`. The word pattern was chosen
+  because it raised the ceiling.
+- **Seen with the model before the reported run.** A probe of 21 test
+  queries and a check of the first 20 of each split. The check scored 28% on
+  `simple` and showed Jev labelling the word that names an argument.
+- **Chosen on a dev split.** The `none` wording, the 0.7 threshold, and the
+  number rule were chosen on `live_simple`, a BFCL split this benchmark does
+  not report (233 of its 258 queries; the rest have a system message, an
+  enum of non-strings, or more than 95 words).
+- **Fixed after a first full test run.** A code review of that run found
+  that `1,000` was read as `1` and `5-10` as `5` and `-10`. The word pattern
+  was corrected and every split run again; the first run scored 66.5, 69.8,
+  and 90.4, and the reported one 66.8, 69.8, and 90.4.
 
 ### Scoring
 
@@ -115,8 +130,10 @@ the only test data looked at before the reported run.
 present, every value among the gold answer's accepted values, and strings
 compared after removing case, spaces, and light punctuation. The package
 itself pins dozens of unrelated dependencies, so it is not a dependency. The
-port agrees with it on all 1,902 predicted calls that picked the gold
-function, and on 600 constructed calls of which 136 are wrong.
+port agrees with it on all 1,782 calls in the committed test runs that
+picked the gold function, and on 600 constructed calls of which 136 are
+wrong. How to repeat the check is in
+[docs/research/2026-10-04-scorer-parity.md](docs/research/2026-10-04-scorer-parity.md).
 
 ### Known limitations
 
@@ -141,8 +158,9 @@ in
 | `none` reworded, numbers word by word, threshold 0.7 (**adopted**) | 43.8          | 66.3              |
 | Adopted, plus a "which of these numbers" question per number       | 43.8          | 66.8              |
 
-The committed dev run of the adopted configuration scores 43.3 and 65.9;
-re-running a configuration moves call accuracy by about half a point.
+The committed dev run of the adopted configuration scores 43.3 and 66.1;
+re-running a configuration moves call accuracy by about half a point. Only
+that run is kept, so the other rows cannot be rescored.
 
 ## Setup
 
