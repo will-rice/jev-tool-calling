@@ -71,11 +71,20 @@ def test_word_spans_give_each_words_offsets() -> None:
 
 
 def test_tool_question_offers_each_function_and_a_described_none() -> None:
-    """Abstaining is an option with its own description."""
+    """Each function is shown with what it does and what each argument means."""
     question = tool_question((AREA, PING))
     assert question.criteria == {
-        "triangle.area": "Area of a triangle.",
-        "ping": "Check the service.",
+        "triangle.area": {
+            "description": "Area of a triangle.",
+            "arguments": {
+                "base": "The base.",
+                "unit": "The unit.",
+                "round": "Round it.",
+                "tags": "Tags.",
+                "extra": "Extras.",
+            },
+        },
+        "ping": {"description": "Check the service.", "arguments": {}},
         "none": "No offered function can answer the request.",
     }
 

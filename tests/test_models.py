@@ -135,3 +135,11 @@ def test_prediction_survives_a_json_round_trip() -> None:
     assert reloaded == prediction
     assert type(reloaded.calls[0].arguments["base"]) is int
     assert type(reloaded.calls[0].arguments["on"]) is bool
+
+
+def test_function_summary_describes_the_function_and_its_arguments() -> None:
+    """What the model is shown of a function includes each argument's meaning."""
+    assert AREA.summary == {
+        "description": "Area of a triangle.",
+        "arguments": {"base": "The base."},
+    }

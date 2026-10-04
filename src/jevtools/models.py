@@ -63,6 +63,20 @@ class Function(BaseModel, frozen=True):
     parameters: tuple[Parameter, ...]
 
     @property
+    def summary(self) -> dict[str, str | dict[str, str | None]]:
+        """What the model is shown of the function when deciding whether to call it.
+
+        Its description and each argument's description, so a function that
+        sounds right but takes the wrong inputs can be told apart.
+        """
+        return {
+            "description": self.description,
+            "arguments": {
+                parameter.name: parameter.description for parameter in self.parameters
+            },
+        }
+
+    @property
     def key(self) -> str:
         """A stable identifier for this exact definition, used to find its spec."""
         return sha1(self.model_dump_json().encode()).hexdigest()[:16]

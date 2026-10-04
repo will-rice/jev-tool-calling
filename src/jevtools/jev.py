@@ -12,9 +12,12 @@ from jevtools.config import (
     CONTEXT_WORDS,
     LABEL_THRESHOLD,
     MAX_BRIDGE,
+    MAX_CALLS,
     MAX_GAP,
     MODEL,
     NONE,
+    ONE_CALL_THRESHOLD,
+    ONE_FUNCTION_THRESHOLD,
     THRESHOLD,
 )
 from jevtools.models import Call, Example, Function, Method, Parameter, Prediction
@@ -22,6 +25,8 @@ from jevtools.spec import FunctionSpec, ParameterSpec, check, default_spec
 from jevtools.values import (
     COUNTRIES,
     DAYS,
+    JOINERS,
+    LIST_GLUE,
     MONTHS,
     STATES,
     UNITED_STATES,
@@ -30,6 +35,7 @@ from jevtools.values import (
     complete_place,
     format_date,
     number_candidates,
+    number_readings,
     word_spans,
 )
 
@@ -54,14 +60,21 @@ def predict(
     method: Method,
     specs: Mapping[str, FunctionSpec],
 ) -> Prediction:
-    """Pick a function for the query, then fill its arguments.
+    """Decide which functions a query needs and how often, then fill each call.
 
-    Arguments are asked only for the function the model picked, in the way
-    its spec says: the authored one under the spec method, or one derived
-    from the schema under the words method. A function with nothing to ask
-    is called with no arguments and no second request, and a long query's
-    questions are spread over several requests. A query offered no function
-    is answered with no call and no request.
+    One request picks a function or abstains, and asks whether several
+    functions are needed and how many times each must be called. Arguments
+    are asked only for the functions selected, in the way each one's spec
+    says: the authored one under the spec method, or one derived from the
+    schema under the words method. A function called once is decoded as a
+    single call. A function called several times has its words labelled
+    once and its values zipped by position into calls, with one more
+    request for values that can be read two ways.
+
+    A function with nothing to ask is called with no arguments and no
+    further request, a long query's questions are spread over several
+    requests, and a query offered no function is answered with no call and
+    no request.
 
     Args:
         client: An open TypeSafe client.
@@ -70,8 +83,10 @@ def predict(
         specs: The authored specs by function key.
 
     Returns:
-        The predicted call, or no call if the model abstained, with every
-        answer's probabilities and each request's token usage.
+        The predicted calls, none if the model abstained, with every
+        answer's probabilities and each request's token usage. Argument
+        answers are keyed by the position of their function among those
+        selected, as "position/question".
     """
     if not example.functions:
         return Prediction(
@@ -86,40 +101,148 @@ def predict(
             model=MODEL,
         )
     state = request_state(example)
-    tool_response = client.system_one(
-        state, {"tool": tool_question(example.functions)}, model=MODEL
+    selection = client.system_one(
+        state, selection_questions(example.functions), model=MODEL
     )
-    tool = tool_response.choices["tool"]
-    call = None
-    choices: dict[str, dict[str, float]] = {}
-    nouls: dict[str, float] = {}
+    choices = {name: answer.probabilities for name, answer in selection.choices.items()}
+    nouls = {name: answer.noul for name, answer in selection.nouls.items()}
+    calls: list[Call] = []
     argument_input_tokens = 0
-    if tool.choice != NONE:
-        function = next(f for f in example.functions if f.name == tool.choice)
+    selected = select_calls(example.functions, choices, nouls)
+    for position, (function, count) in enumerate(selected):
         spec = specs[function.key] if method == "spec" else default_spec(function)
-        questions = argument_questions(example.query, function, spec)
-        for batch in question_batches(questions):
-            response = client.system_one(state, batch, model=MODEL)
-            choices |= {
-                name: answer.probabilities for name, answer in response.choices.items()
-            }
-            nouls |= {name: answer.noul for name, answer in response.nouls.items()}
-            argument_input_tokens += input_tokens(response)
-        call = Call(
-            name=function.name,
-            arguments=decode_arguments(example.query, function, spec, choices, nouls),
+        if count > 1:
+            spec = parallel_spec(spec)
+        asked: dict[str, dict[str, float]] = {}
+        heard: dict[str, float] = {}
+        rounds = [argument_questions(example.query, function, spec)]
+        for questions in rounds:
+            for batch in question_batches(questions):
+                response = client.system_one(state, batch, model=MODEL)
+                asked |= {
+                    name: answer.probabilities
+                    for name, answer in response.choices.items()
+                }
+                heard |= {name: answer.noul for name, answer in response.nouls.items()}
+                argument_input_tokens += input_tokens(response)
+            if count > 1 and len(rounds) == 1:
+                rounds.append(value_questions(example.query, function, spec, asked))
+        arguments = (
+            decode_parallel(example.query, function, spec, asked, heard)
+            if count > 1
+            else [decode_arguments(example.query, function, spec, asked, heard)]
         )
+        calls.extend(Call(name=function.name, arguments=each) for each in arguments)
+        choices |= {f"{position}/{name}": value for name, value in asked.items()}
+        nouls |= {f"{position}/{name}": value for name, value in heard.items()}
     return Prediction(
         example=example,
         method=method,
-        calls=() if call is None else (call,),
-        tool_probabilities=tool.probabilities,
+        calls=tuple(calls),
+        tool_probabilities=choices["tool"],
         choices=choices,
         nouls=nouls,
-        tool_input_tokens=input_tokens(tool_response),
+        tool_input_tokens=input_tokens(selection),
         argument_input_tokens=argument_input_tokens,
-        model=tool_response.model,
+        model=selection.model,
     )
+
+
+def selection_questions(functions: Sequence[Function]) -> dict[str, Choice | Noul]:
+    """Build the questions that decide which functions to call and how often.
+
+    The tool question picks one function or abstains. Each function also
+    gets a question for how many times it must be called. When several
+    functions are offered, one question asks how many different ones are
+    needed and each gets a yes/no for whether it is.
+    """
+    questions: dict[str, Choice | Noul] = {"tool": tool_question(functions)}
+    several = len(functions) > 1
+    if several:
+        questions["distinct"] = Choice(
+            instructions={
+                "functions": {f.name: f.summary for f in functions},
+                "question": (
+                    "How many DIFFERENT functions from `functions` must be called "
+                    "to do everything `query` asks? Calling one function several "
+                    "times still counts as one."
+                ),
+            },
+            criteria=dict.fromkeys(
+                str(n) for n in range(1, min(len(functions), MAX_CALLS) + 1)
+            ),
+        )
+    for index, function in enumerate(functions):
+        about = {"function": function.name, **function.summary}
+        if several:
+            questions[f"needed.{index}"] = Noul(
+                instructions={
+                    **about,
+                    "question": (
+                        "Does doing everything `query` asks require calling `function`?"
+                    ),
+                }
+            )
+        questions[f"count.{index}"] = Choice(
+            instructions={
+                **about,
+                "question": (
+                    "How many separate times must `function` be called to do "
+                    "everything `query` asks? Each distinct item, case, or set "
+                    "of values needs its own call."
+                ),
+            },
+            criteria=dict.fromkeys(str(n) for n in range(1, MAX_CALLS + 1)),
+        )
+    return questions
+
+
+def select_calls(
+    functions: Sequence[Function],
+    choices: Mapping[str, Mapping[str, float]],
+    nouls: Mapping[str, float],
+) -> list[tuple[Function, int]]:
+    """Decide which functions to call and how many times each.
+
+    The tool question's pick is called once unless the other answers are
+    confident otherwise, so a query needing one call is not disturbed by a
+    doubtful count. Several functions are selected only when the chance
+    that one is enough falls below ONE_FUNCTION_THRESHOLD: then as many as
+    the model said, taking those most likely to be needed. A function is
+    called more than once only when the chance of one call falls below
+    ONE_CALL_THRESHOLD.
+
+    Returns:
+        Each selected function with its number of calls, in the order
+        offered. Empty if the model abstained.
+    """
+
+    def top(options: Mapping[str, float]) -> str:
+        return max(options, key=lambda option: options[option])
+
+    def more_than_one(options: Mapping[str, float], threshold: float) -> int:
+        if options.get("1", 0.0) >= threshold:
+            return 1
+        return int(top({k: v for k, v in options.items() if k != "1"}))
+
+    tool = top(choices["tool"])
+    if tool == NONE:
+        return []
+    picked = [index for index, f in enumerate(functions) if f.name == tool]
+    if "distinct" in choices:
+        wanted = more_than_one(choices["distinct"], ONE_FUNCTION_THRESHOLD)
+        if wanted > 1:
+            ranked = sorted(
+                range(len(functions)), key=lambda index: -nouls[f"needed.{index}"]
+            )
+            picked = sorted(ranked[:wanted])
+    return [
+        (
+            functions[index],
+            more_than_one(choices[f"count.{index}"], ONE_CALL_THRESHOLD),
+        )
+        for index in picked
+    ]
 
 
 def request_state(example: Example) -> dict[str, JsonValue]:
@@ -160,10 +283,13 @@ def question_batches(
 def tool_question(functions: Sequence[Function]) -> Choice:
     """Build the question that picks one function or abstains.
 
+    Each function is offered with its description and its arguments'
+    descriptions.
+
     Raises:
         ValueError: If a function is named like the abstain option.
     """
-    criteria = {function.name: function.description for function in functions}
+    criteria = {function.name: function.summary for function in functions}
     if NONE in criteria:
         raise ValueError(f"Function '{NONE}' collides with the abstain option")
     return Choice(
@@ -521,7 +647,10 @@ def open_texts(
 
 
 def word_runs(
-    query: str, function: Function, choices: Mapping[str, Mapping[str, float]]
+    query: str,
+    function: Function,
+    choices: Mapping[str, Mapping[str, float]],
+    fill: bool = True,
 ) -> dict[str, list[tuple[int, int]]]:
     """Group labelled words into each open-valued parameter's runs.
 
@@ -537,26 +666,14 @@ def word_runs(
     unsure of does not cut a value in two. An array gets neither, or its
     elements would merge. For a number parameter every labelled word is its
     own run, so a labelled word beside the number cannot spoil it.
+
+    With `fill` off, as when one function is called several times, no gap
+    is filled, since that would join two calls' values across an "and". A
+    hyphen or apostrophe between two words with the same label still joins
+    them.
     """
-    answers = [choices[f"token_{index}"] for index in range(len(word_spans(query)))]
-    labels = []
-    for probabilities in answers:
-        label = max(probabilities, key=lambda option: probabilities[option])
-        labels.append(label if probabilities[label] >= LABEL_THRESHOLD else NONE)
+    labels = word_labels(query, function, choices, fill)
     strings = {p.name for p in function.parameters if p.value_type == "string"}
-    scalar_strings = {p.name for p in function.parameters if p.type == "string"}
-    for start, label in enumerate(labels):
-        if label not in scalar_strings:
-            continue
-        for end in range(start + 2, min(start + MAX_BRIDGE + 2, len(labels))):
-            gap = range(start + 1, end)
-            if labels[end] != label or any(labels[index] != NONE for index in gap):
-                continue
-            if len(gap) <= MAX_GAP or all(
-                answers[index].get(label, 0.0) >= BRIDGE_THRESHOLD for index in gap
-            ):
-                labels[start + 1 : end] = [label] * len(gap)
-            break
     runs: dict[str, list[tuple[int, int]]] = {}
     position = 0
     for label, group in groupby(labels):
@@ -569,6 +686,274 @@ def word_runs(
             )
         position += length
     return runs
+
+
+def word_labels(
+    query: str,
+    function: Function,
+    choices: Mapping[str, Mapping[str, float]],
+    fill: bool,
+) -> list[str]:
+    """Return each word's label after thresholding, joining, and gap filling.
+
+    See `word_runs` for the rules.
+    """
+    answers = [choices[f"token_{index}"] for index in range(len(word_spans(query)))]
+    labels = []
+    for probabilities in answers:
+        label = max(probabilities, key=lambda option: probabilities[option])
+        labels.append(label if probabilities[label] >= LABEL_THRESHOLD else NONE)
+    scalar_strings = {p.name for p in function.parameters if p.type == "string"}
+    words = [query[start:end] for start, end in word_spans(query)]
+    for index in range(1, len(labels) - 1):
+        if (
+            not fill
+            and labels[index] == NONE
+            and words[index] in JOINERS
+            and labels[index - 1] == labels[index + 1] != NONE
+        ):
+            labels[index] = labels[index - 1]
+    for start, label in enumerate(labels):
+        if not fill or label not in scalar_strings:
+            continue
+        for end in range(start + 2, min(start + MAX_BRIDGE + 2, len(labels))):
+            gap = range(start + 1, end)
+            if labels[end] != label or any(labels[index] != NONE for index in gap):
+                continue
+            if len(gap) <= MAX_GAP or all(
+                answers[index].get(label, 0.0) >= BRIDGE_THRESHOLD for index in gap
+            ):
+                labels[start + 1 : end] = [label] * len(gap)
+            break
+    return labels
+
+
+def parallel_spec(spec: FunctionSpec) -> FunctionSpec:
+    """Return a spec for a function that will be called several times.
+
+    Picking one number per argument is not enough when each call has its
+    own, so a number is labelled in the query like text and every labelled
+    number is read.
+    """
+    return spec.model_copy(
+        update={
+            "parameters": {
+                name: entry.model_copy(update={"kind": "text"})
+                if entry.kind == "number"
+                else entry
+                for name, entry in spec.parameters.items()
+            }
+        }
+    )
+
+
+def value_questions(
+    query: str,
+    function: Function,
+    spec: FunctionSpec,
+    choices: Mapping[str, Mapping[str, float]],
+) -> dict[str, Choice | Noul]:
+    """Build the questions asked about single labelled values.
+
+    A labelled number that can be read two ways, such as "30%" as 30 or
+    0.3, gets a Choice between its readings. A labelled city of a place
+    parameter gets the state and country questions for that city.
+    """
+    labelled = word_function(function, spec)
+    if not labelled.parameters:
+        return {}
+    spans = word_spans(query)
+    questions: dict[str, Choice | Noul] = {}
+    runs = word_runs(query, labelled, choices, fill=False)
+    for parameter in labelled.parameters:
+        name = parameter.name
+        about = {
+            "function": function.name,
+            "argument": name,
+            "description": parameter.description,
+        }
+        for first, last in runs.get(name, []):
+            written = query[spans[first][0] : spans[last][1]]
+            if spec.parameters[name].kind == "place":
+                questions |= {
+                    f"place.{name}.{first}.{part}": question.model_copy(
+                        update={"instructions": {**about, "place": written}}
+                    )
+                    for part, question in (
+                        ("state", place_questions(name, about)[f"place.{name}.state"]),
+                        (
+                            "country",
+                            place_questions(name, about)[f"place.{name}.country"],
+                        ),
+                    )
+                }
+            elif parameter.value_type != "string":
+                readings = number_readings(
+                    query, spans, first, str(parameter.value_type)
+                )
+                if len(readings) > 1:
+                    questions[f"reading.{name}.{first}"] = Choice(
+                        instructions={
+                            **about,
+                            "written": written,
+                            "question": (
+                                "Which of these is the value to pass for "
+                                "`argument`, in the unit and form the function "
+                                "expects?"
+                            ),
+                        },
+                        criteria={
+                            reading: f"written as {source}"
+                            if source
+                            else "the number exactly as written"
+                            for reading, source in readings.items()
+                        },
+                    )
+    return questions
+
+
+def decode_parallel(
+    query: str,
+    function: Function,
+    spec: FunctionSpec,
+    choices: Mapping[str, Mapping[str, float]],
+    nouls: Mapping[str, float],
+) -> list[dict[str, JsonValue]]:
+    """Turn one function's answers into the arguments of several calls.
+
+    Every value labelled for a parameter is kept, in query order, and the
+    values are zipped by position: the first of each goes to the first
+    call. A parameter with one value, or the same value repeated, shares it
+    with every call, as do arguments that are not labelled words. An
+    array's elements stay together while only commas or "and" separate
+    them, and a longer gap starts the next call's array.
+
+    Args:
+        query: The request text.
+        function: The function being called.
+        spec: How each of its parameters was asked.
+        choices: Each Choice question's option probabilities, by question name.
+        nouls: Each Noul question's yes-probability, by question name.
+
+    Returns:
+        One argument mapping per call, at least one.
+    """
+    labelled = word_function(function, spec)
+    runs = (
+        word_runs(query, labelled, choices, fill=False) if labelled.parameters else {}
+    )
+    words = [query[start:end] for start, end in word_spans(query)]
+    per_call: dict[str, list[JsonValue]] = {}
+    shared: dict[str, JsonValue] = {}
+    for parameter in function.parameters:
+        name = parameter.name
+        entry = spec.parameters[name]
+        if f"stated.{name}" in nouls and nouls[f"stated.{name}"] < THRESHOLD:
+            continue
+        if entry.kind not in ("text", "place"):
+            value = decode_value(parameter, entry, None, choices, nouls)
+            if value is not None:
+                shared[name] = value
+            continue
+        found = [
+            (
+                first,
+                last,
+                labelled_value(query, parameter, entry, (first, last), choices),
+            )
+            for first, last in runs.get(name, [])
+        ]
+        found = [
+            (first, last, value) for first, last, value in found if value is not None
+        ]
+        per_call[name] = values_per_call(parameter, found, words)
+    count = max([len(values) for values in per_call.values()] + [1])
+    calls = []
+    for index in range(count):
+        arguments = dict(shared)
+        for name, values in per_call.items():
+            if len(values) == 1:
+                arguments[name] = values[0]
+            elif index < len(values):
+                arguments[name] = values[index]
+        calls.append(arguments)
+    return calls
+
+
+def values_per_call(
+    parameter: Parameter,
+    found: Sequence[tuple[int, int, JsonValue]],
+    words: Sequence[str],
+) -> list[JsonValue]:
+    """Arrange one parameter's labelled values as one value per call.
+
+    A scalar's values are taken in order, and collapse to one if they are
+    all the same. An array's elements stay in one array while only commas
+    or "and" separate them, and a longer gap starts the next call's array.
+
+    Args:
+        parameter: The parameter the values were labelled for.
+        found: Each value with the indexes of its first and last word.
+        words: The query's words.
+    """
+    if parameter.type != "array":
+        values = [value for _, _, value in found]
+        return values[:1] if len(set(map(str, values))) == 1 else values
+    groups: list[tuple[int, list[JsonValue]]] = []
+    for first, last, value in found:
+        glued = groups and all(
+            word.lower() in LIST_GLUE for word in words[groups[-1][0] + 1 : first]
+        )
+        if glued:
+            groups[-1] = (last, [*groups[-1][1], value])
+        else:
+            groups.append((last, [value]))
+    return [group for _, group in groups]
+
+
+def labelled_value(
+    query: str,
+    parameter: Parameter,
+    entry: ParameterSpec,
+    run: tuple[int, int],
+    choices: Mapping[str, Mapping[str, float]],
+) -> JsonValue:
+    """Read the value of one run of labelled words, or None if it is not one.
+
+    A number takes the reading chosen for it, or its only reading. A city
+    of a place parameter is completed with the state or country chosen for
+    it.
+    """
+    spans = word_spans(query)
+    first, last = run
+    name = parameter.name
+
+    def chosen(question: str) -> str:
+        options = choices[question]
+        return max(options, key=lambda option: options[option])
+
+    if parameter.value_type != "string":
+        readings = number_readings(query, spans, first, str(parameter.value_type))
+        if not readings:
+            return None
+        reading = (
+            chosen(f"reading.{name}.{first}")
+            if f"reading.{name}.{first}" in choices
+            else next(iter(readings))
+        )
+        return typed(reading, str(parameter.value_type))
+    text = coerce(query[spans[first][0] : spans[last][1]], "string")
+    if entry.kind != "place" or not isinstance(text, str):
+        return text
+    if f"place.{name}.{first}.state" not in choices:
+        return text
+    return complete_place(
+        text,
+        chosen(f"place.{name}.{first}.state"),
+        chosen(f"place.{name}.{first}.country"),
+        str(entry.place_format),
+        str(entry.no_state),
+    )
 
 
 def input_tokens(response: SystemOneResponse) -> int:

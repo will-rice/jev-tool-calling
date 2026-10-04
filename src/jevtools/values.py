@@ -7,6 +7,7 @@ turn its choices into the value a function expects.
 import re
 import string
 from calendar import monthrange
+from collections.abc import Sequence
 from datetime import date
 
 from jevtools.config import NONE, WORD_PATTERN
@@ -40,6 +41,8 @@ MAGNITUDES = {
     "billion": 1e9,
 }
 PERCENT = ("%", "percent")
+LIST_GLUE = (",", "and", "&", ";", "or", "[", "]", "(", ")")
+JOINERS = ("-", "'", "&")
 MONTHS = (
     "January",
     "February",
@@ -132,13 +135,7 @@ COUNTRIES = (
 
 
 def number_candidates(query: str, value_type: str) -> dict[str, str | None]:
-    """Find every reading of a number in the request.
-
-    Tuned to over-find: each number as written, and also read with its
-    thousands separators removed, scaled by a magnitude ("1.2M", "5
-    million"), as a fraction if it is a percentage, and from a number word.
-    A single letter is a magnitude only when it touches the number, since
-    "5 m" is five metres.
+    """Find every reading of every number in the request.
 
     Args:
         query: The request text.
@@ -149,31 +146,58 @@ def number_candidates(query: str, value_type: str) -> dict[str, str | None]:
         wrote it when that differs, in request order.
     """
     spans = word_spans(query)
-    words = [query[start:end] for start, end in spans]
     found: dict[str, str | None] = {}
-    for index, word in enumerate(words):
-        readings: list[tuple[float, str | None]] = []
-        value = coerce(word, "float")
-        if isinstance(value, float):
-            readings.append((value, None))
-        elif SEPARATED.fullmatch(word):
-            value = float(word.replace(",", ""))
-            readings.append((value, word))
-        elif word.lower() in NUMBER_WORDS:
-            readings.append((float(NUMBER_WORDS[word.lower()]), word))
-        if isinstance(value, float) and index + 1 < len(words):
-            following = words[index + 1].lower()
-            touching = spans[index + 1][0] == spans[index][1]
-            written = query[spans[index][0] : spans[index + 1][1]]
-            if following in MAGNITUDES and (len(following) > 1 or touching):
-                readings.append((value * MAGNITUDES[following], written))
-            if following in PERCENT:
-                readings.append((value / 100, written))
-        for reading, source in readings:
-            if value_type == "integer" and reading != int(reading):
-                continue
-            option = str(int(reading) if value_type == "integer" else reading)
+    for index in range(len(spans)):
+        for option, source in number_readings(query, spans, index, value_type).items():
             found.setdefault(option, source)
+    return found
+
+
+def number_readings(
+    query: str, spans: Sequence[tuple[int, int]], index: int, value_type: str
+) -> dict[str, str | None]:
+    """Find every way the word at an index can be read as a number.
+
+    Tuned to over-find: the number as written, and also read with its
+    thousands separators removed, scaled by a magnitude ("1.2M", "5
+    million"), as a fraction if it is a percentage, and from a number word.
+    A single letter is a magnitude only when it touches the number, since
+    "5 m" is five metres.
+
+    Args:
+        query: The request text.
+        spans: Each word's character offsets in the query.
+        index: Which word to read.
+        value_type: "integer" or "float"; an integer is offered whole numbers only.
+
+    Returns:
+        Each reading as the text of its value, mapped to how the request
+        wrote it when that differs. Empty if the word is not a number.
+    """
+    word = query[spans[index][0] : spans[index][1]]
+    readings: list[tuple[float, str | None]] = []
+    value = coerce(word, "float")
+    if isinstance(value, float):
+        readings.append((value, None))
+    elif SEPARATED.fullmatch(word):
+        value = float(word.replace(",", ""))
+        readings.append((value, word))
+    elif word.lower() in NUMBER_WORDS:
+        readings.append((float(NUMBER_WORDS[word.lower()]), word))
+    if isinstance(value, float) and index + 1 < len(spans):
+        following = query[spans[index + 1][0] : spans[index + 1][1]].lower()
+        touching = spans[index + 1][0] == spans[index][1]
+        written = query[spans[index][0] : spans[index + 1][1]]
+        if following in MAGNITUDES and (len(following) > 1 or touching):
+            readings.append((value * MAGNITUDES[following], written))
+        if following in PERCENT:
+            readings.append((value / 100, written))
+    found: dict[str, str | None] = {}
+    for reading, source in readings:
+        if value_type == "integer" and reading != int(reading):
+            continue
+        option = str(int(reading) if value_type == "integer" else reading)
+        found.setdefault(option, source)
     return found
 
 
