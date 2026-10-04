@@ -1,0 +1,2959 @@
+{
+ "eb73839842dfca7c": {
+  "name": "get_user_info",
+  "parameters": {
+   "user_id": {
+    "kind": "number",
+    "question": "What is the ID number of the user to look up?"
+   },
+   "special": {
+    "kind": "text",
+    "question": "What special information or consideration should be taken into account when looking up the user?",
+    "stated": "Does the request mention any special information or consideration to take into account when fetching the user?"
+   }
+  }
+ },
+ "83539ac2d40e2574": {
+  "name": "github_star",
+  "parameters": {
+   "repos": {
+    "kind": "text",
+    "question": "Which GitHub repositories (as owner/repo, comma-separated) should have their star history tracked?"
+   },
+   "aligned": {
+    "kind": "flag",
+    "question": "Should the repositories be lined up on the same timeline so their star growth starts from the same point?",
+    "stated": "Does the request say anything about whether the repositories should be aligned on the same timeline?"
+   }
+  }
+ },
+ "ec14275ab26c9b2a": {
+  "name": "uber.ride",
+  "parameters": {
+   "loc": {
+    "kind": "text",
+    "question": "From what street address, city, state and country should the ride start?"
+   },
+   "type": {
+    "kind": "options",
+    "question": "What class of Uber ride does the customer want?",
+    "options": {
+     "plus": "an Uber Plus ride",
+     "comfort": "an Uber Comfort ride",
+     "black": "an Uber Black ride"
+    }
+   },
+   "time": {
+    "kind": "number",
+    "question": "What is the longest the customer is willing to wait for the ride?"
+   }
+  }
+ },
+ "0e679d3f24a6d6b7": {
+  "name": "get_current_weather",
+  "parameters": {
+   "location": {
+    "kind": "place",
+    "question": "Which city does the user want the weather for?",
+    "place_format": "city, state_abbr",
+    "no_state": "city, country"
+   },
+   "unit": {
+    "kind": "options",
+    "question": "Should the temperature be reported in Celsius or Fahrenheit?",
+    "stated": "Does the request say which temperature scale to use?",
+    "options": {
+     "celsius": "degrees Celsius",
+     "fahrenheit": "degrees Fahrenheit"
+    }
+   }
+  }
+ },
+ "4b7985ac1588976e": {
+  "name": "get_current_weather",
+  "parameters": {
+   "location": {
+    "kind": "place",
+    "question": "Which city does the user want the weather for?",
+    "place_format": "city, state_abbr",
+    "no_state": "city, country"
+   },
+   "unit": {
+    "kind": "options",
+    "question": "Should the temperature be reported in Celsius or Fahrenheit?",
+    "stated": "Does the request say which temperature scale to use?",
+    "options": {
+     "celsius": "degrees Celsius",
+     "fahrenheit": "degrees Fahrenheit"
+    }
+   }
+  }
+ },
+ "a1da15359c8bb87e": {
+  "name": "get_current_weather",
+  "parameters": {
+   "location": {
+    "kind": "place",
+    "question": "Which city or place does the user want the weather for?",
+    "place_format": "city, state_abbr",
+    "no_state": "city, country"
+   },
+   "unit": {
+    "kind": "options",
+    "question": "Should the temperature be reported in Celsius or Fahrenheit?",
+    "stated": "Does the request say which temperature scale to use?",
+    "options": {
+     "celsius": "degrees Celsius",
+     "fahrenheit": "degrees Fahrenheit"
+    }
+   }
+  }
+ },
+ "c77955143b6696a1": {
+  "name": "get_current_weather",
+  "parameters": {
+   "location": {
+    "kind": "place",
+    "question": "Which city does the user want the weather for?",
+    "place_format": "city, state_abbr",
+    "no_state": "city, country"
+   },
+   "unit": {
+    "kind": "options",
+    "question": "Should the temperature be reported in Celsius or Fahrenheit?",
+    "stated": "Does the request say which temperature scale to use?",
+    "options": {
+     "celsius": "degrees Celsius",
+     "fahrenheit": "degrees Fahrenheit"
+    }
+   }
+  }
+ },
+ "1e64b9d12a4f0d5c": {
+  "name": "get_current_weather",
+  "parameters": {
+   "location": {
+    "kind": "place",
+    "question": "Which city does the user want the weather for?",
+    "place_format": "city, state_abbr",
+    "no_state": "city, country"
+   },
+   "unit": {
+    "kind": "options",
+    "question": "Should the temperature be reported in Celsius or Fahrenheit?",
+    "stated": "Does the request say which temperature scale to use?",
+    "options": {
+     "celsius": "degrees Celsius",
+     "fahrenheit": "degrees Fahrenheit"
+    }
+   }
+  }
+ },
+ "b1372c6ce2732119": {
+  "name": "get_current_weather",
+  "parameters": {
+   "location": {
+    "kind": "place",
+    "question": "Which city does the user want the weather for?",
+    "place_format": "city, state_abbr",
+    "no_state": "city, country"
+   },
+   "unit": {
+    "kind": "options",
+    "question": "Should the temperature be reported in Celsius or Fahrenheit?",
+    "stated": "Does the request say which temperature scale to use?",
+    "options": {
+     "celsius": "degrees Celsius",
+     "fahrenheit": "degrees Fahrenheit"
+    }
+   }
+  }
+ },
+ "8b2956a6db3ec9f4": {
+  "name": "get_current_weather",
+  "parameters": {
+   "location": {
+    "kind": "place",
+    "question": "Which city or place does the user want the weather for?",
+    "place_format": "city, state_abbr",
+    "no_state": "city, country"
+   },
+   "unit": {
+    "kind": "options",
+    "question": "Should the temperature be reported in Celsius or Fahrenheit?",
+    "stated": "Does the request say which temperature scale to use?",
+    "options": {
+     "celsius": "degrees Celsius",
+     "fahrenheit": "degrees Fahrenheit"
+    }
+   }
+  }
+ },
+ "e5d261bc3be0914e": {
+  "name": "change_food",
+  "parameters": {
+   "food_item": {
+    "kind": "text",
+    "question": "Which dish or food item does the customer want changed?"
+   },
+   "modification_request": {
+    "kind": "text",
+    "question": "What changes does the customer want made to the food (multiple changes separated by commas with no spaces)?"
+   }
+  }
+ },
+ "c5fb1887fbef4922": {
+  "name": "ChaFod",
+  "parameters": {
+   "TheFod": {
+    "kind": "options",
+    "question": "Which food does the customer want changed?",
+    "options": {
+     "PIZZA": "pizza",
+     "BURGER": "a burger",
+     "SALAD": "a salad",
+     "SOUP": "soup",
+     "STEAK": "steak"
+    }
+   }
+  }
+ },
+ "748223d426e0a924": {
+  "name": "uber.ride",
+  "parameters": {
+   "loc": {
+    "kind": "text",
+    "question": "From what street address, city and state should the ride start?"
+   },
+   "type": {
+    "kind": "options",
+    "question": "What class of Uber ride does the customer want?",
+    "options": {
+     "plus": "an Uber Plus ride",
+     "comfort": "an Uber Comfort ride",
+     "black": "an Uber Black ride"
+    }
+   },
+   "time": {
+    "kind": "number",
+    "question": "What is the longest the customer is willing to wait for the ride?"
+   }
+  }
+ },
+ "c7a91433319ecb03": {
+  "name": "uber.eat.order",
+  "parameters": {
+   "restaurant": {
+    "kind": "text",
+    "question": "Which restaurant should the food be ordered from?"
+   },
+   "items": {
+    "kind": "text",
+    "question": "Which food items does the customer want to order?"
+   },
+   "quantities": {
+    "kind": "text",
+    "question": "How many of each food item does the customer want, in the same order as the items?"
+   }
+  }
+ },
+ "9391a72343198353": {
+  "name": "aws.lexv2_models.list_exports",
+  "parameters": {
+   "botId": {
+    "kind": "text",
+    "question": "What is the identifier of the bot whose exports should be listed?"
+   },
+   "botVersion": {
+    "kind": "text",
+    "question": "Which version of the bot should the exports be listed for?"
+   },
+   "sortBy": {
+    "kind": "options",
+    "question": "Should the exports be ordered from oldest to newest update, or newest to oldest?",
+    "stated": "Does the request say anything about the order in which the exports should be sorted?",
+    "options": {
+     "ASC": "ascending order, oldest last-updated time first",
+     "DESC": "descending order, most recently updated first"
+    }
+   },
+   "filterName": {
+    "kind": "options",
+    "question": "What kind of resource should the exports be narrowed down by?",
+    "stated": "Does the request ask to filter the exports by a kind of resource?",
+    "options": {
+     "Bot": "exports of a bot",
+     "BotLocale": "exports of a bot locale (a bot's language)",
+     "CustomVocabulary": "exports of a custom vocabulary"
+    },
+    "open": true
+   },
+   "filterOperator": {
+    "kind": "options",
+    "question": "Should the filter match the value exactly or only require that it is contained?",
+    "stated": "Does the request say how the filter value should be matched (exactly or contained)?",
+    "options": {
+     "EQ": "equals the value exactly",
+     "CO": "contains the value"
+    }
+   },
+   "filterValue": {
+    "kind": "text",
+    "question": "What value should the exports be filtered on?",
+    "stated": "Does the request give a value to filter the exports on?"
+   },
+   "maxResults": {
+    "kind": "number",
+    "question": "At most how many exports should be returned per page?",
+    "stated": "Does the request say how many exports to return at most?"
+   },
+   "nextToken": {
+    "kind": "text",
+    "question": "What continuation token should be used to fetch the next page of exports?",
+    "stated": "Does the request provide a continuation token for the next page of results?"
+   },
+   "localeId": {
+    "kind": "text",
+    "question": "Which language/locale of the bot should the exports be for?",
+    "stated": "Does the request mention a language or locale for the exports?"
+   }
+  }
+ },
+ "1461335870775b1f": {
+  "name": "answer.string",
+  "parameters": {
+   "answer": {
+    "kind": "text",
+    "question": "What is the answer text produced by the language model (empty if it gave no answer)?"
+   }
+  }
+ },
+ "78ca8c6d4b587503": {
+  "name": "answer.string",
+  "parameters": {
+   "answer": {
+    "kind": "text",
+    "question": "What is the response text produced by the language model?"
+   }
+  }
+ },
+ "e08923d24cf26b06": {
+  "name": "answer.string",
+  "parameters": {
+   "answer": {
+    "kind": "text",
+    "question": "What is the raw response text produced by the language model?"
+   }
+  }
+ },
+ "60e475df5dd18a1c": {
+  "name": "answer.string",
+  "parameters": {
+   "answer": {
+    "kind": "text",
+    "question": "What is the response text produced by the language model?"
+   }
+  }
+ },
+ "0d003c6740ac263c": {
+  "name": "parseAnswer",
+  "parameters": {
+   "answer": {
+    "kind": "text",
+    "question": "What is the text that should be checked for a meaningful answer?"
+   }
+  }
+ },
+ "bed4232c41a0c815": {
+  "name": "parseAnswer",
+  "parameters": {
+   "answer": {
+    "kind": "text",
+    "question": "What is the answer text from the language model that should be checked for validity?"
+   }
+  }
+ },
+ "73b63612dbfb28b5": {
+  "name": "get_current_weather",
+  "parameters": {
+   "url": {
+    "kind": "text",
+    "question": "What web address of the weather service should be used?",
+    "stated": "Does the request give a specific web address for the weather service?"
+   },
+   "location": {
+    "kind": "place",
+    "question": "Which city or place does the user want the weather for?",
+    "place_format": "city, state_abbr",
+    "no_state": "city, country"
+   },
+   "unit": {
+    "kind": "options",
+    "question": "Should the temperature be reported in Celsius or Fahrenheit?",
+    "stated": "Does the request say which temperature scale to use?",
+    "options": {
+     "celsius": "degrees Celsius",
+     "fahrenheit": "degrees Fahrenheit"
+    }
+   }
+  }
+ },
+ "d05b6045e7d76a10": {
+  "name": "fetch_weather_data",
+  "parameters": {
+   "url": {
+    "kind": "text",
+    "question": "What web address of the weather service should be used?",
+    "stated": "Does the request give a specific web address for the weather service?"
+   },
+   "latitude": {
+    "kind": "number",
+    "question": "What is the latitude of the place the forecast is for?"
+   },
+   "longitude": {
+    "kind": "number",
+    "question": "What is the longitude of the place the forecast is for?"
+   },
+   "units": {
+    "kind": "options",
+    "question": "Should temperature and wind speed be given in metric or imperial measurements?",
+    "stated": "Does the request say whether to use metric or imperial measurements?",
+    "options": {
+     "metric": "metric measurements (Celsius, km/h or m/s)",
+     "imperial": "imperial measurements (Fahrenheit, mph)"
+    }
+   },
+   "language": {
+    "kind": "options",
+    "question": "In which language should the weather conditions be described?",
+    "stated": "Does the request say which language the weather description should be in?",
+    "options": {
+     "en": "English",
+     "es": "Spanish",
+     "de": "German",
+     "fr": "French"
+    }
+   }
+  }
+ },
+ "d50625941b6848ae": {
+  "name": "ThinQ_Connect",
+  "parameters": {
+   "body": {
+    "kind": "skip",
+    "question": "What settings and modes should be sent to the appliance?"
+   }
+  }
+ },
+ "320465dc97d3148c": {
+  "name": "ThinQ_Connect",
+  "parameters": {
+   "body": {
+    "kind": "skip",
+    "question": "What control settings should be sent to the appliance?"
+   }
+  }
+ },
+ "e261e96e85287778": {
+  "name": "ThinQ_Connect",
+  "parameters": {
+   "airConJobMode": {
+    "kind": "options",
+    "question": "What should the air conditioner be doing: cleaning the air, cooling, or drying the air?",
+    "options": {
+     "AIR_CLEAN": "clean / purify the air",
+     "COOL": "cool the room",
+     "AIR_DRY": "dry / dehumidify the air"
+    }
+   },
+   "windStrength": {
+    "kind": "options",
+    "question": "How strong should the air flow be?",
+    "options": {
+     "LOW": "low / weak air flow",
+     "HIGH": "high / strong air flow",
+     "MID": "medium air flow"
+    }
+   },
+   "monitoringEnabled": {
+    "kind": "flag",
+    "question": "Should air quality sensor monitoring be turned on?"
+   },
+   "airCleanOperationMode": {
+    "kind": "options",
+    "question": "Should the air cleaning process be started or stopped?",
+    "options": {
+     "START": "start air cleaning",
+     "STOP": "stop air cleaning"
+    }
+   },
+   "airConOperationMode": {
+    "kind": "options",
+    "question": "Should the air conditioner be switched on or off?",
+    "options": {
+     "POWER_ON": "turn the air conditioner on",
+     "POWER_OFF": "turn the air conditioner off"
+    }
+   },
+   "powerSaveEnabled": {
+    "kind": "flag",
+    "question": "Should power-saving mode be turned on?"
+   },
+   "targetTemperature": {
+    "kind": "number",
+    "question": "What temperature should the air conditioner be set to?"
+   }
+  }
+ },
+ "3646d5cc49a65113": {
+  "name": "multiply",
+  "parameters": {
+   "a": {
+    "kind": "number",
+    "question": "What is the first whole number to multiply?"
+   },
+   "b": {
+    "kind": "number",
+    "question": "What is the second whole number to multiply?"
+   }
+  }
+ },
+ "1f5dbc77e89b448c": {
+  "name": "find_beer",
+  "parameters": {
+   "brewery": {
+    "kind": "text",
+    "question": "Which brewery should the recommended beer be from or similar to?"
+   },
+   "taste": {
+    "kind": "text",
+    "question": "How should the beer taste (for example bitter, sweet or sour)?"
+   },
+   "aroma": {
+    "kind": "text",
+    "question": "How should the beer smell (for example fruity, hoppy or malty)?"
+   },
+   "color": {
+    "kind": "text",
+    "question": "What color should the beer be (for example pale, amber or dark)?"
+   },
+   "style": {
+    "kind": "text",
+    "question": "What style of beer is wanted (for example IPA, stout or lager)?"
+   },
+   "abv_min": {
+    "kind": "number",
+    "question": "What is the lowest alcohol content the beer may have?",
+    "stated": "Does the request give a minimum alcohol content for the beer?"
+   },
+   "abv_max": {
+    "kind": "number",
+    "question": "What is the highest alcohol content the beer may have?",
+    "stated": "Does the request give a maximum alcohol content for the beer?"
+   },
+   "ibu_min": {
+    "kind": "number",
+    "question": "What is the lowest bitterness score the beer may have?",
+    "stated": "Does the request give a minimum bitterness (IBU) score for the beer?"
+   },
+   "ibu_max": {
+    "kind": "number",
+    "question": "What is the highest bitterness score the beer may have?",
+    "stated": "Does the request give a maximum bitterness (IBU) score for the beer?"
+   },
+   "pairings": {
+    "kind": "text",
+    "question": "Which foods should the beer go well with?",
+    "stated": "Does the request mention any food the beer should be paired with?"
+   }
+  }
+ },
+ "0589d58dd1ac68e5": {
+  "name": "get_latest_carbon_intensity",
+  "parameters": {
+   "zone": {
+    "kind": "text",
+    "question": "For which geographic area (such as a state or region) is the carbon intensity wanted?"
+   }
+  }
+ },
+ "807fc607325883ca": {
+  "name": "ThinQ_Connect",
+  "parameters": {
+   "body": {
+    "kind": "skip",
+    "question": "What single setting should be sent to the appliance?"
+   }
+  }
+ },
+ "9d7b4fd25bf55d91": {
+  "name": "todo_add",
+  "parameters": {
+   "content": {
+    "kind": "text",
+    "question": "What is the task that should be added to the to-do list?"
+   }
+  }
+ },
+ "fb381724d4c74185": {
+  "name": "todo",
+  "parameters": {
+   "type": {
+    "kind": "options",
+    "question": "What does the user want to do with the to-do list?",
+    "options": {
+     "add": "add a new item",
+     "delete": "remove an existing item",
+     "update": "change an existing item"
+    }
+   },
+   "content": {
+    "kind": "text",
+    "question": "What is the to-do item the action applies to?"
+   }
+  }
+ },
+ "7965b7c6cc18e753": {
+  "name": "todo_manager.handle_action",
+  "parameters": {
+   "type": {
+    "kind": "options",
+    "question": "What does the user want to do with the to-do list?",
+    "options": {
+     "add": "add a new item",
+     "delete": "remove an existing item",
+     "update": "change the text of an existing item",
+     "complete": "mark an item as done"
+    }
+   },
+   "content": {
+    "kind": "text",
+    "question": "What is the to-do item (its text, or its identifier when removing or completing) the action applies to?"
+   }
+  }
+ },
+ "2d28a17327e68105": {
+  "name": "todo",
+  "parameters": {
+   "type": {
+    "kind": "options",
+    "question": "What does the user want to do with the to-do list?",
+    "options": {
+     "add": "add a new task",
+     "delete": "remove an existing task",
+     "complete": "mark a task as done"
+    }
+   },
+   "content": {
+    "kind": "text",
+    "question": "What is the task the action applies to?"
+   }
+  }
+ },
+ "8b439717d7f9e77d": {
+  "name": "obtener_cotizacion_de_creditos",
+  "parameters": {
+   "monto_del_credito": {
+    "kind": "number",
+    "question": "How much money is the customer borrowing in total?"
+   },
+   "plazo_del_credito_mensual": {
+    "kind": "number",
+    "question": "Over how long will the customer pay back the loan?"
+   },
+   "tasa_interes_minima": {
+    "kind": "number",
+    "question": "What fixed yearly interest rate applies to the loan?",
+    "stated": "Does the request state an interest rate for the loan?"
+   },
+   "producto": {
+    "kind": "options",
+    "question": "What kind of loan is the customer asking for?",
+    "options": {
+     "hipotecario": "a mortgage / home loan",
+     "auto": "a car loan",
+     "personal": "a personal loan",
+     "negocios": "a business loan"
+    }
+   },
+   "año_vehiculo": {
+    "kind": "number",
+    "question": "What is the model year of the vehicle being financed?",
+    "stated": "Does the request mention the year of a vehicle?"
+   },
+   "enganche": {
+    "kind": "number",
+    "question": "What share of the price is the customer paying up front as a down payment?",
+    "stated": "Does the request mention a down payment?"
+   }
+  }
+ },
+ "ef12b99c623235d9": {
+  "name": "sum",
+  "parameters": {
+   "a": {
+    "kind": "number",
+    "question": "What is the first number to add?"
+   },
+   "b": {
+    "kind": "number",
+    "question": "What is the second number to add?"
+   }
+  }
+ },
+ "30d11fca92a79bc4": {
+  "name": "analysis_api.AnalysisApi.retrieve_analysis",
+  "parameters": {
+   "project": {
+    "kind": "text",
+    "question": "What is the UUID of the project whose analysis trail is wanted?"
+   },
+   "component": {
+    "kind": "text",
+    "question": "What is the UUID of the component within the project?"
+   },
+   "vulnerability": {
+    "kind": "text",
+    "question": "What is the UUID of the vulnerability affecting the component?"
+   }
+  }
+ },
+ "92df3c5e281f870f": {
+  "name": "get_sensor_alerts",
+  "parameters": {
+   "perPage": {
+    "kind": "number",
+    "question": "How many alerts should be shown on each page (between 3 and 100)?"
+   },
+   "startingAfter": {
+    "kind": "text",
+    "question": "What server-provided token marks where the page of alerts should start?",
+    "stated": "Does the request provide a token marking the start of the page?"
+   },
+   "endingBefore": {
+    "kind": "text",
+    "question": "What server-provided token marks where the page of alerts should end?",
+    "stated": "Does the request provide a token marking the end of the page?"
+   },
+   "t0": {
+    "kind": "date",
+    "question": "From what date onward should alerts be included?",
+    "stated": "Does the request give a start date for the alerts?",
+    "format": "%Y-%m-%d"
+   },
+   "t1": {
+    "kind": "date",
+    "question": "Up to what date should alerts be included?",
+    "stated": "Does the request give an end date for the alerts?",
+    "format": "%Y-%m-%d"
+   },
+   "networkId": {
+    "kind": "text",
+    "question": "Which networks should the alerts be limited to?",
+    "stated": "Does the request name any networks to limit the alerts to?"
+   },
+   "timespan": {
+    "kind": "number",
+    "question": "How long a period of time should the alert search cover?",
+    "stated": "Does the request give a length of time the alert search should cover?"
+   },
+   "sensorSerial": {
+    "kind": "text",
+    "question": "Which sensor, by serial number, should the alerts be limited to?",
+    "stated": "Does the request name a specific sensor serial number?"
+   },
+   "triggerMetric": {
+    "kind": "options",
+    "question": "What kind of sensor reading set off the alerts the user is interested in?",
+    "stated": "Does the request say what kind of reading triggered the alerts?",
+    "options": {
+     "apparentPower": "apparent power",
+     "co2": "carbon dioxide (CO2) level",
+     "current": "electrical current",
+     "door": "a door being opened or closed",
+     "frequency": "electrical frequency",
+     "humidity": "humidity",
+     "indoorAirQuality": "overall indoor air quality",
+     "noise": "noise level",
+     "pm25": "fine particulate matter (PM2.5)",
+     "powerFactor": "power factor",
+     "realPower": "real power",
+     "temperature": "temperature",
+     "tvoc": "total volatile organic compounds (TVOC)",
+     "upstreamPower": "upstream power (power outage)",
+     "voltage": "voltage",
+     "water": "water / leak detection"
+    }
+   }
+  }
+ },
+ "a952352dfe40eb8b": {
+  "name": "extract_parameters_v1",
+  "parameters": {
+   "demographics": {
+    "kind": "text",
+    "question": "Which groups of people (by demographic, geographic or lifestyle traits) is the question about?",
+    "stated": "Does the request mention any particular group of people?"
+   },
+   "targets": {
+    "kind": "text",
+    "question": "Which brands, countries or other entities is the question about, each written as type:name?"
+   },
+   "metrics": {
+    "kind": "set",
+    "question": "Which attitudes or opinions about the entities does the user want to measure?",
+    "options": {
+     "favorability": "how favorably people see it",
+     "admired employer": "how admired it is as an employer",
+     "buzz": "how much people are hearing or talking about it",
+     "community impact": "its impact on the community",
+     "purchasing consideration": "whether people would consider buying from it",
+     "trust": "how much people trust it",
+     "usage frequency": "how often people use it",
+     "value": "how good a value people think it is",
+     "promoter": "whether people would recommend it",
+     "view": "people's general view or opinion of it"
+    }
+   },
+   "country": {
+    "kind": "text",
+    "question": "In which country do the people of interest live?",
+    "stated": "Does the request mention a country for the people being asked about?"
+   },
+   "min_date": {
+    "kind": "date",
+    "question": "From what date should the data start?",
+    "stated": "Does the request give a start date for the period of interest?",
+    "format": "%Y-%m-%d"
+   },
+   "max_date": {
+    "kind": "date",
+    "question": "On what date should the data end?",
+    "stated": "Does the request give an end date for the period of interest?",
+    "format": "%Y-%m-%d"
+   },
+   "interval": {
+    "kind": "options",
+    "question": "How should the data be grouped over time?",
+    "stated": "Does the request say how the data should be grouped over time (daily, weekly, monthly...)?",
+    "options": {
+     "day": "daily, one value per day",
+     "week": "weekly, one value per week",
+     "month": "monthly, one value per month",
+     "quarter": "quarterly, one value per quarter",
+     "year": "yearly / annually, one value per year"
+    }
+   }
+  }
+ },
+ "0e78da53fbca9571": {
+  "name": "detect_beats_and_filter",
+  "parameters": {
+   "capture_percentage": {
+    "kind": "number",
+    "question": "Below what confidence percentile (0 to 100) should beats be thrown out?"
+   },
+   "confidence_window_size": {
+    "kind": "number",
+    "question": "How long is the time window within which only the most confident beat is kept?"
+   }
+  }
+ },
+ "72e538b532facd41": {
+  "name": "language_translator.translate",
+  "parameters": {
+   "source_language": {
+    "kind": "options",
+    "question": "What language is the original text written in?",
+    "options": {
+     "en": "English",
+     "hi": "Hindi",
+     "es": "Spanish",
+     "fr": "French",
+     "de": "German"
+    }
+   },
+   "target_language": {
+    "kind": "options",
+    "question": "Into what language should the text be translated?",
+    "options": {
+     "hi": "Hindi",
+     "id": "Indonesian",
+     "es": "Spanish",
+     "fr": "French",
+     "de": "German"
+    }
+   },
+   "text": {
+    "kind": "text",
+    "question": "What is the text that should be translated?"
+   }
+  }
+ },
+ "c5e1c3df9dc18391": {
+  "name": "weather.get",
+  "parameters": {
+   "city": {
+    "kind": "place",
+    "question": "Which city does the user want the weather for?",
+    "place_format": "city",
+    "no_state": "city"
+   },
+   "country": {
+    "kind": "text",
+    "question": "In which country is the city, as a two-letter country code?"
+   },
+   "units": {
+    "kind": "options",
+    "question": "Should the temperature be given in metric or imperial measurements?",
+    "stated": "Does the request say whether to use metric or imperial measurements?",
+    "options": {
+     "metric": "metric measurements (Celsius)",
+     "imperial": "imperial measurements (Fahrenheit)"
+    }
+   },
+   "include_forecast": {
+    "kind": "flag",
+    "question": "Does the user also want a forecast for the coming days, not just the current weather?",
+    "stated": "Does the request say anything about wanting or not wanting a forecast for the coming days?"
+   }
+  }
+ },
+ "74e86b9b4c9ceede": {
+  "name": "search_hotels",
+  "parameters": {
+   "location": {
+    "kind": "place",
+    "question": "In which city should hotels be searched for?",
+    "place_format": "city, state_abbr",
+    "no_state": "city, country"
+   }
+  }
+ },
+ "75667e1b6eb75277": {
+  "name": "sitefinity_create_contentitem",
+  "parameters": {
+   "Title": {
+    "kind": "text",
+    "question": "What headline should the new content item have?"
+   },
+   "Content": {
+    "kind": "text",
+    "question": "What is the main body text of the new content item?"
+   },
+   "MetaTitle": {
+    "kind": "text",
+    "question": "What short title should search engines show for this content?"
+   },
+   "MetaDescription": {
+    "kind": "text",
+    "question": "What brief summary should search engines show for this content?"
+   },
+   "UrlName": {
+    "kind": "text",
+    "question": "What hyphenated web-address slug should the content item have?"
+   }
+  }
+ },
+ "b6c04f354fb6ea7d": {
+  "name": "sitefinity_create_contentitem",
+  "parameters": {
+   "ContentItem": {
+    "kind": "options",
+    "question": "What kind of content does the user want to create?",
+    "options": {
+     "NewsItem": "a news item / news article",
+     "BlogPost": "a blog post",
+     "Event": "an event"
+    }
+   },
+   "Title": {
+    "kind": "text",
+    "question": "What headline or name should the new content item have?"
+   },
+   "Content": {
+    "kind": "text",
+    "question": "What is the detailed body text or description of the content item?",
+    "stated": "Does the request give body text or a description for the content item?"
+   },
+   "MetaTitle": {
+    "kind": "text",
+    "question": "What short title should search engines show for this content?",
+    "stated": "Does the request give a separate title for search engines?"
+   },
+   "MetaDescription": {
+    "kind": "text",
+    "question": "What brief summary should search engines show for this content?",
+    "stated": "Does the request give a summary for search engines?"
+   },
+   "UrlName": {
+    "kind": "text",
+    "question": "What web-address-friendly name should the content item have?",
+    "stated": "Does the request give a web-address name or slug for the content item?"
+   }
+  }
+ },
+ "056b30bfdda89157": {
+  "name": "sitefinity_create_contentitem",
+  "parameters": {
+   "ContentItem": {
+    "kind": "options",
+    "question": "What kind of content does the user want to create?",
+    "options": {
+     "News": "a news item / news article",
+     "BlogPost": "a blog post",
+     "Event": "an event",
+     "Product": "a product"
+    }
+   },
+   "Title": {
+    "kind": "text",
+    "question": "What headline or name should the new content item have?"
+   },
+   "Content": {
+    "kind": "text",
+    "question": "What is the detailed body text or description of the content item?",
+    "stated": "Does the request give body text or a description for the content item?"
+   },
+   "MetaTitle": {
+    "kind": "text",
+    "question": "What short title should search engines show for this content?",
+    "stated": "Does the request give a separate title for search engines?"
+   },
+   "MetaDescription": {
+    "kind": "text",
+    "question": "What brief summary should search engines show for this content?",
+    "stated": "Does the request give a summary for search engines?"
+   },
+   "UrlName": {
+    "kind": "text",
+    "question": "What web-address-friendly name should the content item have?",
+    "stated": "Does the request give a web-address name or slug for the content item?"
+   }
+  }
+ },
+ "ff2d83d4ee2052c5": {
+  "name": "sitefinity_create_contentitem",
+  "parameters": {
+   "ContentItem": {
+    "kind": "options",
+    "question": "What kind of content does the user want to create?",
+    "options": {
+     "news": "a news item / news article",
+     "blog": "a blog post",
+     "event": "an event"
+    }
+   },
+   "Title": {
+    "kind": "text",
+    "question": "What headline or name should the new content item have?"
+   },
+   "Content": {
+    "kind": "text",
+    "question": "What is the full body text of the content item?"
+   },
+   "MetaTitle": {
+    "kind": "text",
+    "question": "What short title should search engines show for this content?"
+   },
+   "MetaDescription": {
+    "kind": "text",
+    "question": "What brief summary should search engines show for this content?"
+   },
+   "UrlName": {
+    "kind": "text",
+    "question": "What lowercase, hyphenated web-address slug should the content item have?"
+   }
+  }
+ },
+ "092e88707a097601": {
+  "name": "get_coordinates_from_city",
+  "parameters": {
+   "city_name": {
+    "kind": "place",
+    "question": "Which city's latitude and longitude are wanted?",
+    "place_format": "city",
+    "no_state": "city"
+   }
+  }
+ },
+ "74a8bea27d8a71e8": {
+  "name": "open_meteo_api.fetch_weather_data",
+  "parameters": {
+   "coordinates": {
+    "kind": "text",
+    "question": "What are the latitude and longitude, in decimal degrees, of the place the temperature is wanted for?"
+   },
+   "units": {
+    "kind": "options",
+    "question": "In which temperature scale should the result be given?",
+    "stated": "Does the request say which temperature scale to use?",
+    "options": {
+     "Celsius": "degrees Celsius",
+     "Fahrenheit": "degrees Fahrenheit",
+     "Kelvin": "kelvins"
+    }
+   }
+  }
+ },
+ "2db267b1c7d4f53c": {
+  "name": "sort_array",
+  "parameters": {
+   "array": {
+    "kind": "text",
+    "question": "Which whole numbers should be sorted?"
+   },
+   "reverse": {
+    "kind": "flag",
+    "question": "Should the numbers be sorted from largest to smallest?",
+    "stated": "Does the request say whether the numbers should go from smallest to largest or largest to smallest?"
+   }
+  }
+ },
+ "933a60dbfc1914da": {
+  "name": "get_current_loc",
+  "parameters": {
+   "coordinate_format": {
+    "kind": "options",
+    "question": "How should the coordinates be written?",
+    "stated": "Does the request say how the coordinates should be written?",
+    "options": {
+     "degrees": "decimal degrees",
+     "DMS": "degrees, minutes and seconds"
+    }
+   },
+   "include_altitude": {
+    "kind": "flag",
+    "question": "Does the user also want the altitude / elevation?",
+    "stated": "Does the request say anything about altitude or elevation?"
+   },
+   "timeout": {
+    "kind": "number",
+    "question": "How long at most should the device wait to get a location fix?",
+    "stated": "Does the request say how long to wait for the location?"
+   }
+  }
+ },
+ "e8b7e2d6776d43d1": {
+  "name": "log_food",
+  "parameters": {
+   "food_name": {
+    "kind": "text",
+    "question": "What food did the user eat?"
+   },
+   "portion_amount": {
+    "kind": "number",
+    "question": "How much of the food did the user eat?"
+   },
+   "portion_unit": {
+    "kind": "options",
+    "question": "In what measure is the amount of food given?",
+    "stated": "Does the request say what measure the amount of food is in?",
+    "options": {
+     "grams": "grams",
+     "ounces": "ounces",
+     "pieces": "pieces / individual items",
+     "cups": "cups",
+     "tablespoons": "tablespoons"
+    }
+   },
+   "meal_name": {
+    "kind": "options",
+    "question": "At which meal was the food eaten?",
+    "options": {
+     "breakfast": "breakfast, the morning meal",
+     "lunch": "lunch, the midday meal",
+     "dinner": "dinner, the evening meal",
+     "snack": "a snack between meals"
+    },
+    "open": true
+   }
+  }
+ },
+ "9d1ec91e915976f2": {
+  "name": "interior_design_analysis.generate_report",
+  "parameters": {
+   "user_preferences": {
+    "kind": "text",
+    "question": "What are the user's interior design preferences (style, color scheme, budget and so on), as a JSON string?"
+   },
+   "data_source": {
+    "kind": "text",
+    "question": "Where should the historical design data and survey results come from?"
+   },
+   "output_format": {
+    "kind": "options",
+    "question": "What kind of file should the report be delivered as?",
+    "stated": "Does the request say what kind of file the report should be?",
+    "options": {
+     "PDF": "a PDF document",
+     "HTML": "an HTML web page",
+     "DOCX": "a Word document"
+    }
+   },
+   "include_visuals": {
+    "kind": "flag",
+    "question": "Should the report contain visuals such as mood boards, diagrams, floorplans or 3D models?",
+    "stated": "Does the request say anything about including or leaving out visuals?"
+   },
+   "environmental_impact_focus": {
+    "kind": "flag",
+    "question": "Should the report put environmental impact first?",
+    "stated": "Does the request say anything about environmental impact or sustainability?"
+   }
+  }
+ },
+ "85a56f1842f254ba": {
+  "name": "temperature",
+  "parameters": {
+   "location": {
+    "kind": "place",
+    "question": "Which city does the user want the temperature for?",
+    "place_format": "city, country",
+    "no_state": "city, country"
+   },
+   "units": {
+    "kind": "options",
+    "question": "In which temperature scale should the result be given?",
+    "stated": "Does the request say which temperature scale to use?",
+    "options": {
+     "Celsius": "degrees Celsius",
+     "Fahrenheit": "degrees Fahrenheit",
+     "Kelvin": "kelvins"
+    }
+   },
+   "time": {
+    "kind": "text",
+    "question": "For what date and time (in ISO 8601 form) is the temperature wanted?",
+    "stated": "Does the request ask for the temperature at a specific date and time rather than right now?"
+   }
+  }
+ },
+ "d9660ee0fce07b8e": {
+  "name": "fetchPerson",
+  "parameters": {
+   "id": {
+    "kind": "number",
+    "question": "What is the ID number of the person to look up?"
+   }
+  }
+ },
+ "2eb740fbd3b6aa2a": {
+  "name": "play_artist",
+  "parameters": {
+   "artist_name": {
+    "kind": "text",
+    "question": "Which artist's music should be played?"
+   }
+  }
+ },
+ "50847dd890ab8db8": {
+  "name": "play_artist",
+  "parameters": {
+   "artist_name": {
+    "kind": "text",
+    "question": "Which artist's tracks should be played?"
+   }
+  }
+ },
+ "dc8b016759bd0bbb": {
+  "name": "play_song",
+  "parameters": {
+   "artist_name": {
+    "kind": "text",
+    "question": "Which artist performs the song to be played?"
+   },
+   "song_name": {
+    "kind": "text",
+    "question": "Which song should be played?"
+   }
+  }
+ },
+ "9778fc06aae2a405": {
+  "name": "process_data",
+  "parameters": {
+   "data": {
+    "kind": "text",
+    "question": "Which numerical values make up the data to be processed?"
+   },
+   "normalize": {
+    "kind": "flag",
+    "question": "Should the numbers be scaled to a standard range?"
+   },
+   "categories": {
+    "kind": "text",
+    "question": "Which category labels should be encoded?"
+   },
+   "encoding_type": {
+    "kind": "options",
+    "question": "How should the category labels be turned into numbers?",
+    "stated": "Does the request say how the categories should be encoded?",
+    "options": {
+     "label": "label encoding, one integer per category",
+     "one-hot": "one-hot encoding, one 0/1 column per category"
+    }
+   },
+   "missing_values": {
+    "kind": "options",
+    "question": "What should missing values be filled in with?",
+    "stated": "Does the request say how missing values should be handled?",
+    "options": {
+     "mean": "the average of the column",
+     "median": "the middle value of the column",
+     "most_frequent": "the most common value of the column"
+    }
+   }
+  }
+ },
+ "383f5e3b10f4d89b": {
+  "name": "get_current_weather",
+  "parameters": {
+   "location": {
+    "kind": "place",
+    "question": "Which city does the user want the weather for?",
+    "place_format": "city, state_abbr",
+    "no_state": "city, country"
+   },
+   "unit": {
+    "kind": "options",
+    "question": "Should the temperature be reported in Celsius or Fahrenheit?",
+    "stated": "Does the request say which temperature scale to use?",
+    "options": {
+     "celsius": "degrees Celsius",
+     "fahrenheit": "degrees Fahrenheit"
+    }
+   }
+  }
+ },
+ "e2bb097656564de5": {
+  "name": "get_current_weather",
+  "parameters": {
+   "location": {
+    "kind": "place",
+    "question": "Which city does the user want the weather for?",
+    "place_format": "city, state_abbr",
+    "no_state": "city, country"
+   },
+   "unit": {
+    "kind": "options",
+    "question": "Should the temperature be reported in Celsius or Fahrenheit?",
+    "stated": "Does the request say which temperature scale to use?",
+    "options": {
+     "celsius": "degrees Celsius",
+     "fahrenheit": "degrees Fahrenheit"
+    }
+   }
+  }
+ },
+ "3633bddfd6e470e0": {
+  "name": "get_weather_by_coordinates",
+  "parameters": {
+   "city": {
+    "kind": "place",
+    "question": "Which city does the user want the weather for?",
+    "place_format": "city, state_abbr",
+    "no_state": "city"
+   },
+   "lat": {
+    "kind": "number",
+    "question": "What is the latitude of the city?"
+   },
+   "lon": {
+    "kind": "number",
+    "question": "What is the longitude of the city?"
+   }
+  }
+ },
+ "67602d25e855aa7a": {
+  "name": "connectBluetooth",
+  "parameters": {
+   "device_name": {
+    "kind": "text",
+    "question": "Which Bluetooth device should be connected to?"
+   },
+   "timeout": {
+    "kind": "number",
+    "question": "How long should the connection attempt go on before giving up?",
+    "stated": "Does the request say how long to keep trying to connect?"
+   },
+   "auto_reconnect": {
+    "kind": "flag",
+    "question": "Should the device reconnect by itself if the connection drops?",
+    "stated": "Does the request say anything about reconnecting automatically if the connection is lost?"
+   }
+  }
+ },
+ "00ff3bb848e94a1c": {
+  "name": "askForSSID",
+  "parameters": {
+   "prompt_message": {
+    "kind": "text",
+    "question": "What message should be shown to the user when asking for the Wi-Fi network name?"
+   },
+   "default_ssid": {
+    "kind": "text",
+    "question": "Which Wi-Fi network name should be used if the user does not enter one?",
+    "stated": "Does the request give a fallback Wi-Fi network name?"
+   },
+   "retry_attempts": {
+    "kind": "number",
+    "question": "How many tries does the user get to enter the Wi-Fi network name?",
+    "stated": "Does the request say how many tries the user gets?"
+   },
+   "hide_input": {
+    "kind": "flag",
+    "question": "Should what the user types be hidden for privacy?",
+    "stated": "Does the request say anything about hiding or showing what the user types?"
+   }
+  }
+ },
+ "8caa7409d323f167": {
+  "name": "calculate_tax",
+  "parameters": {
+   "purchase_amount": {
+    "kind": "number",
+    "question": "How much does the purchase cost in total before tax?"
+   },
+   "state": {
+    "kind": "options",
+    "question": "In which U.S. state is the purchase being made?",
+    "options": {
+     "AL": "Alabama",
+     "AK": "Alaska",
+     "AZ": "Arizona",
+     "AR": "Arkansas",
+     "CA": "California",
+     "CO": "Colorado",
+     "CT": "Connecticut",
+     "DE": "Delaware",
+     "DC": "District of Columbia / Washington, D.C.",
+     "FL": "Florida",
+     "GA": "Georgia",
+     "HI": "Hawaii",
+     "ID": "Idaho",
+     "IL": "Illinois",
+     "IN": "Indiana",
+     "IA": "Iowa",
+     "KS": "Kansas",
+     "KY": "Kentucky",
+     "LA": "Louisiana",
+     "ME": "Maine",
+     "MD": "Maryland",
+     "MA": "Massachusetts",
+     "MI": "Michigan",
+     "MN": "Minnesota",
+     "MS": "Mississippi",
+     "MO": "Missouri",
+     "MT": "Montana",
+     "NE": "Nebraska",
+     "NV": "Nevada",
+     "NH": "New Hampshire",
+     "NJ": "New Jersey",
+     "NM": "New Mexico",
+     "NY": "New York",
+     "NC": "North Carolina",
+     "ND": "North Dakota",
+     "OH": "Ohio",
+     "OK": "Oklahoma",
+     "OR": "Oregon",
+     "PA": "Pennsylvania",
+     "RI": "Rhode Island",
+     "SC": "South Carolina",
+     "SD": "South Dakota",
+     "TN": "Tennessee",
+     "TX": "Texas",
+     "UT": "Utah",
+     "VT": "Vermont",
+     "VA": "Virginia",
+     "WA": "Washington (state)",
+     "WV": "West Virginia",
+     "WI": "Wisconsin",
+     "WY": "Wyoming"
+    },
+    "open": true
+   },
+   "county": {
+    "kind": "text",
+    "question": "In which county is the purchase being made?",
+    "stated": "Does the request mention a county?"
+   },
+   "city": {
+    "kind": "text",
+    "question": "In which city is the purchase being made?",
+    "stated": "Does the request mention a city?"
+   },
+   "tax_exempt": {
+    "kind": "flag",
+    "question": "Is the purchase exempt from tax?",
+    "stated": "Does the request say whether the purchase is tax-exempt?"
+   },
+   "discount_rate": {
+    "kind": "number",
+    "question": "What discount applies to the purchase?",
+    "stated": "Does the request mention a discount?"
+   },
+   "apply_special_tax": {
+    "kind": "flag",
+    "question": "Should special tax rules for the item type or a promotion be applied?",
+    "stated": "Does the request say anything about special tax rules or promotions?"
+   }
+  }
+ },
+ "cb5890bfd5114780": {
+  "name": "classify",
+  "parameters": {
+   "clean_hello": {
+    "kind": "text",
+    "question": "Which of the queries are casual greetings or informal hellos?"
+   },
+   "faq_link_accounts_start": {
+    "kind": "text",
+    "question": "Which of the queries are about linking accounts at the bank?"
+   }
+  }
+ },
+ "7e28200387ffce19": {
+  "name": "record",
+  "parameters": {
+   "faq_auto_withdraw_start": {
+    "kind": "text",
+    "question": "Which of the queries are about setting up or understanding automatic withdrawals?",
+    "stated": "Are any of the queries about automatic withdrawals?"
+   },
+   "payment_information_start": {
+    "kind": "text",
+    "question": "Which of the queries are about checking a balance or a payment due date on a credit card or other account?",
+    "stated": "Are any of the queries about balances or payment due dates?"
+   },
+   "pma_income_requirements_start": {
+    "kind": "text",
+    "question": "Which of the queries are about the income needed to get a mortgage or loan?",
+    "stated": "Are any of the queries about income requirements for a mortgage or loan?"
+   },
+   "outofscope": {
+    "kind": "text",
+    "question": "Which of the queries do not fit any of the other categories?",
+    "stated": "Are there any queries that fit none of the other categories?"
+   }
+  }
+ },
+ "d9b30b2cde92fad8": {
+  "name": "record",
+  "parameters": {
+   "acc_routing_start": {
+    "kind": "text",
+    "question": "Which of the queries ask for a bank routing number or account number?",
+    "stated": "Are any of the queries asking for a routing number or account number?"
+   },
+   "atm_finder_start": {
+    "kind": "text",
+    "question": "Which of the queries ask where to find an ATM?",
+    "stated": "Are any of the queries asking where to find an ATM?"
+   },
+   "faq_link_accounts_start": {
+    "kind": "text",
+    "question": "Which of the queries are about linking accounts together at the bank?",
+    "stated": "Are any of the queries about linking accounts?"
+   },
+   "get_balance_start": {
+    "kind": "text",
+    "question": "Which of the queries ask for an account balance or available funds?",
+    "stated": "Are any of the queries asking for a balance or available funds?"
+   },
+   "get_transactions_start": {
+    "kind": "text",
+    "question": "Which of the queries are about viewing transactions such as deposits and purchases?",
+    "stated": "Are any of the queries about viewing transactions?"
+   },
+   "outofscope": {
+    "kind": "text",
+    "question": "Which of the queries do not fit any of the other categories?",
+    "stated": "Are there any queries that fit none of the other categories?"
+   }
+  }
+ },
+ "a988705f542f4ffe": {
+  "name": "record",
+  "parameters": {
+   "acc_routing_start": {
+    "kind": "text",
+    "question": "Which of the queries ask for a bank routing number or account number?"
+   },
+   "atm_finder_start": {
+    "kind": "text",
+    "question": "Which of the queries ask where to find an ATM?"
+   },
+   "faq_link_accounts_start": {
+    "kind": "text",
+    "question": "Which of the queries are about linking accounts together at the bank?"
+   },
+   "get_balance_start": {
+    "kind": "text",
+    "question": "Which of the queries ask for an account balance or available funds?"
+   },
+   "get_transactions_start": {
+    "kind": "text",
+    "question": "Which of the queries are about viewing transactions, deposits or purchases?"
+   },
+   "outofscope": {
+    "kind": "text",
+    "question": "Which of the queries do not fit any of the other categories?"
+   }
+  }
+ },
+ "e7e2547668594274": {
+  "name": "update_user_profile",
+  "parameters": {
+   "user_id": {
+    "kind": "number",
+    "question": "What is the ID number of the user whose profile is being changed?"
+   },
+   "profile_data": {
+    "kind": "skip",
+    "question": "Which profile details should be changed, and to what?"
+   },
+   "notify": {
+    "kind": "flag",
+    "question": "Should the user be told that their profile was changed?",
+    "stated": "Does the request say whether the user should be notified of the change?"
+   }
+  }
+ },
+ "21b397afe3628a2e": {
+  "name": "calculate_sum",
+  "parameters": {
+   "number1": {
+    "kind": "number",
+    "question": "What is the first number to add?"
+   },
+   "number2": {
+    "kind": "number",
+    "question": "What is the second number to add?"
+   }
+  }
+ },
+ "cb8b2b49124beebf": {
+  "name": "sum_numbers",
+  "parameters": {
+   "numbers_list": {
+    "kind": "text",
+    "question": "Which numbers should be added together?"
+   }
+  }
+ },
+ "069187d3b07495d5": {
+  "name": "reverse_input",
+  "parameters": {
+   "input_value": {
+    "kind": "skip",
+    "question": "What value should be reversed or flipped?"
+   }
+  }
+ },
+ "ba6b034b6ece9735": {
+  "name": "get_temperature",
+  "parameters": {
+   "units": {
+    "kind": "options",
+    "question": "In which temperature scale should the reading be given?",
+    "options": {
+     "Celsius": "degrees Celsius, centigrade",
+     "Fahrenheit": "degrees Fahrenheit",
+     "Kelvin": "kelvins, the absolute temperature scale"
+    }
+   },
+   "location": {
+    "kind": "place",
+    "question": "Which city's temperature is wanted?",
+    "stated": "Does the request name a place?",
+    "place_format": "city, country",
+    "no_state": "city, country"
+   },
+   "time": {
+    "kind": "text",
+    "question": "For what date and time is the temperature wanted?",
+    "stated": "Does the request mention a date or time for the temperature?"
+   }
+  }
+ },
+ "8862834bfad6904f": {
+  "name": "GetPrimeMinisters",
+  "parameters": {
+   "countries": {
+    "kind": "text",
+    "question": "Which countries' prime ministers are being asked about?"
+   }
+  }
+ },
+ "de70c8ea00b226ae": {
+  "name": "weather.forecast",
+  "parameters": {
+   "location": {
+    "kind": "place",
+    "question": "Which city is the forecast for?",
+    "place_format": "city, state_abbr",
+    "no_state": "city, country"
+   },
+   "start_date": {
+    "kind": "date",
+    "question": "On what day should the forecast begin?",
+    "format": "%Y-%m-%d"
+   },
+   "end_date": {
+    "kind": "date",
+    "question": "On what day should the forecast end?",
+    "format": "%Y-%m-%d"
+   },
+   "temperature_unit": {
+    "kind": "options",
+    "question": "In which temperature scale should the forecast be given?",
+    "stated": "Does the request say which temperature scale to use?",
+    "options": {
+     "Celsius": "degrees Celsius, centigrade",
+     "Fahrenheit": "degrees Fahrenheit"
+    }
+   },
+   "include_precipitation": {
+    "kind": "flag",
+    "question": "Should the forecast include rain and other precipitation?",
+    "stated": "Does the request say anything about rain or precipitation?"
+   },
+   "include_wind": {
+    "kind": "flag",
+    "question": "Should the forecast include wind speed?",
+    "stated": "Does the request say anything about wind?"
+   }
+  }
+ },
+ "a1f6ba4d45760afd": {
+  "name": "generate_chart",
+  "parameters": {
+   "data_labels": {
+    "kind": "text",
+    "question": "What are the names of the points to plot on the chart?"
+   },
+   "data_values": {
+    "kind": "text",
+    "question": "What are the numbers to plot, one for each named point?"
+   }
+  }
+ },
+ "e20a9c998c573082": {
+  "name": "process_data",
+  "parameters": {
+   "image_path": {
+    "kind": "text",
+    "question": "Where is the picture file the question is about?"
+   },
+   "question": {
+    "kind": "text",
+    "question": "What is being asked about the picture?"
+   },
+   "model": {
+    "kind": "skip",
+    "question": "Which already-loaded question-answering model should answer?"
+   }
+  }
+ },
+ "f7ddcffb7d1c365d": {
+  "name": "get_tickets",
+  "parameters": {
+   "customer": {
+    "kind": "text",
+    "question": "Which company's tickets are wanted?"
+   },
+   "status": {
+    "kind": "options",
+    "question": "What state should the tickets be in?",
+    "stated": "Does the request say what state the tickets should be in?",
+    "options": {
+     "open": "tickets that are still open, not yet dealt with",
+     "closed": "tickets that have been closed",
+     "pending": "tickets that are waiting, on hold or awaiting a reply",
+     "resolved": "tickets that have been solved or fixed"
+    }
+   },
+   "limit": {
+    "kind": "number",
+    "question": "At most how many tickets should be returned?",
+    "stated": "Does the request say how many tickets to return?"
+   }
+  }
+ },
+ "9fe85e8ccabf5ee6": {
+  "name": "concat_strings",
+  "parameters": {
+   "strings": {
+    "kind": "text",
+    "question": "Which pieces of text should be joined together?"
+   },
+   "separator": {
+    "kind": "text",
+    "question": "What should be placed between the pieces of text when they are joined?",
+    "stated": "Does the request say what to put between the pieces of text?"
+   }
+  }
+ },
+ "d4ffc15086f89712": {
+  "name": "telemetry.flowrules.interfaceInfo.get",
+  "parameters": {
+   "fabricName": {
+    "kind": "text",
+    "question": "Which network fabric is the interface in?"
+   },
+   "nodeId": {
+    "kind": "number",
+    "question": "What is the ID number of the node?"
+   },
+   "podId": {
+    "kind": "number",
+    "question": "What is the ID number of the pod?"
+   },
+   "interfaceType": {
+    "kind": "options",
+    "question": "What kind of network interface is being asked about?",
+    "options": {
+     "svi": "SVI, a switched virtual interface (VLAN interface)",
+     "ethernet": "an Ethernet interface, a physical port",
+     "loopback": "a loopback interface",
+     "port-channel": "a port-channel, a bundle of aggregated links"
+    }
+   },
+   "infoType": {
+    "kind": "options",
+    "question": "What does the user want to know about the interface?",
+    "options": {
+     "interfaces": "the list of interfaces, general interface information",
+     "status": "the current state of the interface, whether it is up or down",
+     "statistics": "traffic statistics and counters",
+     "errors": "error information, error counts"
+    }
+   }
+  }
+ },
+ "873f521deee6705e": {
+  "name": "requests.get",
+  "parameters": {
+   "url": {
+    "kind": "text",
+    "question": "What is the full web address to call to list the fabric's nodes?",
+    "stated": "Does the request give the web address or the server IP to call?"
+   },
+   "fabricName": {
+    "kind": "text",
+    "question": "Which network fabric's nodes should be listed?"
+   }
+  }
+ },
+ "0ef8d2bb97d2e56f": {
+  "name": "requests.get",
+  "parameters": {
+   "url": {
+    "kind": "text",
+    "question": "What is the full web address to call to list the fabric's nodes?",
+    "stated": "Does the request give the web address or the server IP to call?"
+   },
+   "fabricName": {
+    "kind": "text",
+    "question": "Which network fabric's nodes should be listed?"
+   }
+  }
+ },
+ "f997f588a284f1eb": {
+  "name": "requests.get",
+  "parameters": {
+   "url": {
+    "kind": "text",
+    "question": "What is the web address of the interface information service to call?"
+   },
+   "params": {
+    "kind": "skip",
+    "question": "What extra query details should be sent along with the web request?"
+   }
+  }
+ },
+ "56948d08ac922d0a": {
+  "name": "requests.get",
+  "parameters": {
+   "url": {
+    "kind": "text",
+    "question": "What is the web address of the device connector versions file to fetch?"
+   },
+   "params": {
+    "kind": "skip",
+    "question": "What extra query details should be sent along with the web request?",
+    "stated": "Does the request mention any extra query details to send?"
+   }
+  }
+ },
+ "2ec1a3a75069ffd9": {
+  "name": "requests.get",
+  "parameters": {
+   "url": {
+    "kind": "text",
+    "question": "What is the web address of the advisory recommendations service to call?"
+   },
+   "params": {
+    "kind": "skip",
+    "question": "What extra query details should be sent along with the web request?"
+   }
+  }
+ },
+ "82e2ccfdc1b3b050": {
+  "name": "requests.get",
+  "parameters": {
+   "url": {
+    "kind": "text",
+    "question": "What is the web address of the insights groups service to call?"
+   },
+   "params": {
+    "kind": "skip",
+    "question": "What extra query details should be sent along with the web request?",
+    "stated": "Does the request mention any extra query details to send?"
+   }
+  }
+ },
+ "81969a13c699f371": {
+  "name": "requests.get",
+  "parameters": {
+   "url": {
+    "kind": "text",
+    "question": "What is the web address to fetch data from?"
+   },
+   "params": {
+    "kind": "skip",
+    "question": "What extra query details should be sent along with the web request?",
+    "stated": "Does the request mention any extra query details to send?"
+   }
+  }
+ },
+ "6dfbce34d4cca3e0": {
+  "name": "requests.get",
+  "parameters": {
+   "url": {
+    "kind": "text",
+    "question": "What is the web address of the application topology service to call?"
+   },
+   "params": {
+    "kind": "skip",
+    "question": "What extra query details should be sent along with the web request?"
+   }
+  }
+ },
+ "c68c243fb3c3ecb8": {
+  "name": "reschedule",
+  "parameters": {
+   "identifier": {
+    "kind": "text",
+    "question": "Which event is being moved?"
+   },
+   "dateOrTime": {
+    "kind": "text",
+    "question": "What new date and time should the event be moved to?"
+   },
+   "timezone": {
+    "kind": "options",
+    "question": "Which time zone is the new event time given in?",
+    "options": {
+     "Asia/Tokyo": "Tokyo / Japan time (JST)",
+     "America/New_York": "New York / US Eastern time (EST, EDT)",
+     "Europe/London": "London / UK time (GMT, BST)",
+     "UTC": "UTC, Coordinated Universal Time"
+    }
+   }
+  }
+ },
+ "934b9a1c58209843": {
+  "name": "reschedule",
+  "parameters": {
+   "identifier": {
+    "kind": "text",
+    "question": "Which event is being moved?"
+   },
+   "dateOrTime": {
+    "kind": "text",
+    "question": "What new date and time should the event be moved to?"
+   },
+   "timezone": {
+    "kind": "options",
+    "question": "Which time zone is the new event time given in?",
+    "stated": "Does the request mention a time zone?",
+    "options": {
+     "Asia/Tokyo": "Tokyo / Japan time (JST)",
+     "America/New_York": "New York / US Eastern time (EST, EDT)",
+     "Europe/London": "London / UK time (GMT, BST)",
+     "UTC": "UTC, Coordinated Universal Time"
+    }
+   }
+  }
+ },
+ "5a0c5618108f870a": {
+  "name": "requests.get",
+  "parameters": {
+   "url": {
+    "kind": "text",
+    "question": "What is the web address of the anomalies summary service to call?"
+   },
+   "params": {
+    "kind": "skip",
+    "question": "What extra query details should be sent along with the web request?",
+    "stated": "Does the request mention any extra query details to send?"
+   }
+  }
+ },
+ "6bf46aec168063b1": {
+  "name": "greet_partner",
+  "parameters": {
+   "user_name": {
+    "kind": "text",
+    "question": "What is the name of the person sending the greeting?"
+   },
+   "partner_name": {
+    "kind": "text",
+    "question": "What is the name of the partner being greeted?"
+   },
+   "relationship": {
+    "kind": "options",
+    "question": "How is the person being greeted related to the sender?",
+    "stated": "Does the request say how the two people are related?",
+    "options": {
+     "wife": "the sender's wife",
+     "husband": "the sender's husband",
+     "partner": "the sender's partner, girlfriend, boyfriend or significant other"
+    }
+   }
+  }
+ },
+ "1366233c755b748c": {
+  "name": "cmd_controller.execute",
+  "parameters": {
+   "command": {
+    "kind": "text",
+    "question": "What Windows command line should be run?"
+   },
+   "unit": {
+    "kind": "options",
+    "question": "In what unit should the command's running time be measured?",
+    "stated": "Does the request say how the command's running time should be measured?",
+    "options": {
+     "seconds": "measure execution time in seconds",
+     "milliseconds": "measure execution time in milliseconds"
+    }
+   }
+  }
+ },
+ "818bf14f486d6747": {
+  "name": "cmd_controller.execute",
+  "parameters": {
+   "command": {
+    "kind": "text",
+    "question": "What Windows command line should be run?"
+   },
+   "unit": {
+    "kind": "options",
+    "question": "In what unit should the command's running time be measured?",
+    "stated": "Does the request say how the command's running time should be measured?",
+    "options": {
+     "seconds": "measure execution time in seconds",
+     "milliseconds": "measure execution time in milliseconds"
+    }
+   }
+  }
+ },
+ "2030081ada01171d": {
+  "name": "cmd_controller.execute",
+  "parameters": {
+   "command": {
+    "kind": "text",
+    "question": "What Windows command line should be run?"
+   },
+   "unit": {
+    "kind": "options",
+    "question": "In what unit should the command's running time be measured?",
+    "stated": "Does the request say how the command's running time should be measured?",
+    "options": {
+     "seconds": "measure execution time in seconds",
+     "milliseconds": "measure execution time in milliseconds"
+    }
+   }
+  }
+ },
+ "51a0490b9bc02e4c": {
+  "name": "get_items",
+  "parameters": {
+   "items": {
+    "kind": "text",
+    "question": "Which things should be checked for copyright?"
+   }
+  }
+ },
+ "644df738f59207ec": {
+  "name": "cmd_controller.execute",
+  "parameters": {
+   "command": {
+    "kind": "text",
+    "question": "What Windows command line should be run?"
+   }
+  }
+ },
+ "f3e1c7b3150c84d2": {
+  "name": "get_service_id",
+  "parameters": {
+   "service_id": {
+    "kind": "options",
+    "question": "What kind of home service is wanted?",
+    "options": {
+     "1": "cleaning service, regular house cleaning",
+     "2": "ironing service",
+     "3": "comprehensive cleaning service, a big or extensive deep clean"
+    },
+    "open": true
+   },
+   "province_id": {
+    "kind": "options",
+    "question": "In which province is the service wanted?",
+    "stated": "Does the request say which province the service is in?",
+    "options": {
+     "1": "Bangkok",
+     "2": "Chiang Mai",
+     "3": "Chonburi"
+    },
+    "open": true
+   },
+   "rating": {
+    "kind": "number",
+    "question": "What average review score should the service provider have?",
+    "stated": "Does the request mention a review score or rating?"
+   }
+  }
+ },
+ "032592e737906d4e": {
+  "name": "get_service_id",
+  "parameters": {
+   "service_id": {
+    "kind": "options",
+    "question": "What kind of home service is wanted?",
+    "options": {
+     "1": "cleaning service, regular house cleaning",
+     "2": "ironing service",
+     "3": "comprehensive cleaning service, a big or extensive deep clean"
+    },
+    "open": true
+   },
+   "province_id": {
+    "kind": "options",
+    "question": "In which province is the service wanted?",
+    "stated": "Does the request say which province the service is in?",
+    "options": {
+     "1": "Bangkok",
+     "2": "Chiang Mai",
+     "3": "Chonburi"
+    },
+    "open": true
+   },
+   "district_name": {
+    "kind": "text",
+    "question": "In which district is the service wanted?",
+    "stated": "Does the request name a district?"
+   },
+   "rating": {
+    "kind": "number",
+    "question": "What average review score, from 0 to 5, should the service provider have?",
+    "stated": "Does the request mention a review score or rating?"
+   }
+  }
+ },
+ "ce5db8f41a782778": {
+  "name": "get_service_providers",
+  "parameters": {
+   "service_id": {
+    "kind": "options",
+    "question": "What kind of home service is wanted?",
+    "options": {
+     "1": "cleaning service, regular house cleaning",
+     "2": "ironing service",
+     "3": "comprehensive cleaning service, a big or extensive deep clean"
+    },
+    "open": true
+   },
+   "province_id": {
+    "kind": "options",
+    "question": "In which province is the service wanted?",
+    "stated": "Does the request say which province the service is in?",
+    "options": {
+     "1": "Bangkok",
+     "2": "Chiang Mai",
+     "3": "Chonburi"
+    },
+    "open": true
+   },
+   "district_name": {
+    "kind": "text",
+    "question": "In which district is the service wanted?",
+    "stated": "Does the request name a district?"
+   },
+   "sub_district_name": {
+    "kind": "text",
+    "question": "In which sub-district is the service wanted?",
+    "stated": "Does the request name a sub-district?"
+   },
+   "rating": {
+    "kind": "number",
+    "question": "What is the lowest average review score the provider should have?",
+    "stated": "Does the request mention a review score or rating?"
+   }
+  }
+ },
+ "b70afdfdba15d69e": {
+  "name": "get_service_providers",
+  "parameters": {
+   "service_id": {
+    "kind": "options",
+    "question": "What kind of home service is wanted?",
+    "options": {
+     "1": "cleaning service, regular house cleaning",
+     "2": "ironing service",
+     "3": "comprehensive cleaning service, a big or extensive deep clean"
+    },
+    "open": true
+   },
+   "province_id": {
+    "kind": "options",
+    "question": "In which province is the service wanted?",
+    "stated": "Does the request say which province the service is in?",
+    "options": {
+     "1": "Bangkok",
+     "2": "Chiang Mai",
+     "3": "Chonburi"
+    },
+    "open": true
+   },
+   "district_name": {
+    "kind": "text",
+    "question": "In which district is the service wanted?",
+    "stated": "Does the request name a district?"
+   },
+   "sub_district_name": {
+    "kind": "text",
+    "question": "In which sub-district is the service wanted?",
+    "stated": "Does the request name a sub-district?"
+   },
+   "rating": {
+    "kind": "number",
+    "question": "What is the lowest average review score the provider should have?",
+    "stated": "Does the request mention a review score or rating?"
+   },
+   "start_available_date": {
+    "kind": "date",
+    "question": "From what day does the provider need to be available?",
+    "stated": "Does the request say from when the provider must be available?",
+    "format": "%Y-%m-%d"
+   }
+  }
+ },
+ "285fbdd38ce3dbb5": {
+  "name": "get_service_providers",
+  "parameters": {
+   "service_id": {
+    "kind": "options",
+    "question": "What kind of home service is wanted?",
+    "options": {
+     "1": "cleaning service, regular house cleaning",
+     "2": "ironing service",
+     "3": "comprehensive cleaning service, a big or extensive deep clean"
+    },
+    "open": true
+   },
+   "province_id": {
+    "kind": "options",
+    "question": "In which province is the service wanted?",
+    "stated": "Does the request say which province the service is in?",
+    "options": {
+     "1": "Bangkok",
+     "2": "Chiang Mai",
+     "3": "Chonburi"
+    },
+    "open": true
+   },
+   "district_name": {
+    "kind": "text",
+    "question": "In which district is the service wanted?",
+    "stated": "Does the request name a district?"
+   },
+   "sub_district_name": {
+    "kind": "text",
+    "question": "In which sub-district is the service wanted?",
+    "stated": "Does the request name a sub-district?"
+   },
+   "rating": {
+    "kind": "number",
+    "question": "What is the lowest average review score the provider should have?",
+    "stated": "Does the request mention a review score or rating?"
+   },
+   "start_available_date": {
+    "kind": "text",
+    "question": "From what date and time does the provider need to be available?",
+    "stated": "Does the request say from when the provider must be available?"
+   },
+   "end_available_date": {
+    "kind": "text",
+    "question": "Until what date and time does the provider need to be available?",
+    "stated": "Does the request say until when the provider must be available?"
+   }
+  }
+ },
+ "cc55217435189b46": {
+  "name": "get_service_providers",
+  "parameters": {
+   "service_id": {
+    "kind": "options",
+    "question": "What kind of home service is wanted?",
+    "options": {
+     "1": "cleaning service, regular house cleaning",
+     "2": "ironing service",
+     "3": "comprehensive cleaning service, a big or extensive deep clean"
+    },
+    "open": true
+   },
+   "province_id": {
+    "kind": "options",
+    "question": "In which province is the service wanted?",
+    "stated": "Does the request say which province the service is in?",
+    "options": {
+     "1": "Bangkok",
+     "2": "Chiang Mai",
+     "3": "Chonburi"
+    },
+    "open": true
+   },
+   "district_name": {
+    "kind": "text",
+    "question": "In which district is the service wanted?",
+    "stated": "Does the request name a district?"
+   },
+   "sub_district_name": {
+    "kind": "text",
+    "question": "In which sub-district is the service wanted?",
+    "stated": "Does the request name a sub-district?"
+   },
+   "rating": {
+    "kind": "number",
+    "question": "What is the lowest average review score the provider should have?",
+    "stated": "Does the request mention a review score or rating?"
+   },
+   "start_available_date": {
+    "kind": "date",
+    "question": "From what day does the provider need to be available?",
+    "stated": "Does the request say from when the provider must be available?",
+    "format": "%Y-%m-%d"
+   },
+   "end_available_date": {
+    "kind": "date",
+    "question": "Until what day does the provider need to be available?",
+    "stated": "Does the request say until when the provider must be available?",
+    "format": "%Y-%m-%d"
+   },
+   "has_late_check_in": {
+    "kind": "flag",
+    "question": "Is the user looking for providers who have a record of arriving late?",
+    "stated": "Does the request say anything about providers arriving late or being on time?"
+   }
+  }
+ },
+ "8aaa7822c08ec5c4": {
+  "name": "raptor.mpn.specs",
+  "parameters": {
+   "identifier": {
+    "kind": "text",
+    "question": "What part number, item number or SKU is being looked up?"
+   },
+   "search_type": {
+    "kind": "options",
+    "question": "What sort of product code did the user give?",
+    "stated": "Does the request say what sort of product code it is?",
+    "options": {
+     "MPN": "a manufacturer part number",
+     "ItemNo": "an item number",
+     "SKU": "a stock keeping unit, a SKU",
+     "PartNumber": "a part number"
+    }
+   },
+   "include_images": {
+    "kind": "flag",
+    "question": "Should pictures of the part be included?",
+    "stated": "Does the request say anything about pictures or images?"
+   }
+  }
+ },
+ "46ec8e77ec293763": {
+  "name": "Weather_1_GetWeather",
+  "parameters": {
+   "city": {
+    "kind": "place",
+    "question": "Which city's weather is wanted?",
+    "place_format": "city",
+    "no_state": "city"
+   },
+   "date": {
+    "kind": "date",
+    "question": "For what day is the weather wanted?",
+    "stated": "Does the request say which day the weather is for?",
+    "format": "%Y-%m-%d"
+   }
+  }
+ },
+ "6f2d98fcb9e90b3d": {
+  "name": "Movies_3_FindMovies",
+  "parameters": {
+   "directed_by": {
+    "kind": "text",
+    "question": "Who directed the movie the user is looking for?",
+    "stated": "Does the request name a director?"
+   },
+   "genre": {
+    "kind": "options",
+    "question": "What kind of movie is the user looking for?",
+    "stated": "Does the request say what kind of movie is wanted?",
+    "options": {
+     "Offbeat": "an offbeat, quirky or unconventional movie",
+     "Fantasy": "a fantasy movie with magic or imaginary worlds",
+     "World": "world cinema, a foreign or international movie",
+     "Mystery": "a mystery or whodunit",
+     "Thriller": "a thriller, a suspenseful movie",
+     "Comedy": "a comedy, a funny movie",
+     "Comedy-drama": "a comedy-drama, a dramedy mixing humour and serious themes",
+     "Horror": "a horror movie, something scary",
+     "Animation": "an animated movie or cartoon",
+     "Sci-fi": "a science fiction movie",
+     "Cult": "a cult movie, a cult classic",
+     "Drama": "a drama, a serious movie",
+     "Anime": "an anime, Japanese animation",
+     "Family": "a family movie, suitable for kids",
+     "Action": "an action movie",
+     "dontcare": "any genre is fine, or no genre was mentioned"
+    }
+   },
+   "cast": {
+    "kind": "text",
+    "question": "Which actors or actresses should star in the movie?",
+    "stated": "Does the request name any actors or actresses?"
+   }
+  }
+ },
+ "8632ac5c9355ffbb": {
+  "name": "Movies_3_FindMovies",
+  "parameters": {
+   "directed_by": {
+    "kind": "text",
+    "question": "Who directed the movie the user is looking for?",
+    "stated": "Does the request name a director?"
+   },
+   "genre": {
+    "kind": "options",
+    "question": "What kind of movie is the user looking for?",
+    "stated": "Does the request say what kind of movie is wanted?",
+    "options": {
+     "Offbeat": "an offbeat, quirky or unconventional movie",
+     "Fantasy": "a fantasy movie with magic or imaginary worlds",
+     "World": "world cinema, a foreign or international movie",
+     "Mystery": "a mystery or whodunit",
+     "Thriller": "a thriller, a suspenseful movie",
+     "Comedy": "a comedy, a funny movie",
+     "Comedy-drama": "a comedy-drama, a dramedy mixing humour and serious themes",
+     "Horror": "a horror movie, something scary",
+     "Animation": "an animated movie or cartoon",
+     "Sci-fi": "a science fiction movie",
+     "Cult": "a cult movie, a cult classic",
+     "Drama": "a drama, a serious movie",
+     "Anime": "an anime, Japanese animation",
+     "Family": "a family movie, suitable for kids",
+     "Action": "an action movie",
+     "dontcare": "any genre is fine, or no genre was mentioned"
+    }
+   },
+   "cast": {
+    "kind": "text",
+    "question": "Which actors or actresses should star in the movie?",
+    "stated": "Does the request name any actors or actresses?"
+   }
+  }
+ },
+ "f4f67d8fe6e0d58c": {
+  "name": "Movies_3_FindMovies",
+  "parameters": {
+   "directed_by": {
+    "kind": "text",
+    "question": "Who directed the movie the user is looking for?",
+    "stated": "Does the request name a director?"
+   },
+   "genre": {
+    "kind": "options",
+    "question": "What kind of movie is the user looking for?",
+    "stated": "Does the request say what kind of movie is wanted?",
+    "options": {
+     "Offbeat": "an offbeat, quirky or unconventional movie",
+     "Fantasy": "a fantasy movie with magic or imaginary worlds",
+     "World": "world cinema, a foreign or international movie",
+     "Mystery": "a mystery or whodunit",
+     "Thriller": "a thriller, a suspenseful movie",
+     "Comedy": "a comedy, a funny movie",
+     "Comedy-drama": "a comedy-drama, a dramedy mixing humour and serious themes",
+     "Horror": "a horror movie, something scary",
+     "Animation": "an animated movie or cartoon",
+     "Sci-fi": "a science fiction movie",
+     "Cult": "a cult movie, a cult classic",
+     "Drama": "a drama, a serious movie",
+     "Anime": "an anime, Japanese animation",
+     "Family": "a family movie, suitable for kids",
+     "Action": "an action movie",
+     "dontcare": "any genre is fine, or no genre was mentioned"
+    }
+   },
+   "cast": {
+    "kind": "text",
+    "question": "Which actors or actresses should star in the movie?",
+    "stated": "Does the request name any actors or actresses?"
+   }
+  }
+ },
+ "1ba8a8297a3b5b88": {
+  "name": "text_to_speech.convert",
+  "parameters": {
+   "text": {
+    "kind": "text",
+    "question": "What words should be spoken aloud?"
+   },
+   "language": {
+    "kind": "options",
+    "question": "What language is the text written in?",
+    "stated": "Does the request say anything about the language?",
+    "options": {
+     "en-US": "English (United States)",
+     "es-ES": "Spanish (Spain)",
+     "de-DE": "German (Germany)",
+     "fr-FR": "French (France)",
+     "it-IT": "Italian (Italy)"
+    }
+   },
+   "gender": {
+    "kind": "options",
+    "question": "Should the voice sound male or female?",
+    "stated": "Does the request say whether the voice should be male or female?",
+    "options": {
+     "male": "a male voice, a man's voice",
+     "female": "a female voice, a woman's voice"
+    }
+   },
+   "format": {
+    "kind": "options",
+    "question": "What type of audio file should be produced?",
+    "stated": "Does the request say what type of audio file is wanted?",
+    "options": {
+     "mp3": "an MP3 audio file",
+     "wav": "a WAV audio file",
+     "ogg": "an OGG audio file"
+    }
+   },
+   "speed": {
+    "kind": "number",
+    "question": "How fast should the speech be, where 1.0 is normal speed?",
+    "stated": "Does the request say how fast the speech should be?"
+   }
+  }
+ },
+ "0e1a8a17cf24f41a": {
+  "name": "text_to_speech.convert",
+  "parameters": {
+   "text": {
+    "kind": "text",
+    "question": "What words should be spoken aloud?"
+   },
+   "language": {
+    "kind": "options",
+    "question": "What language should the speech be in?",
+    "stated": "Does the request say anything about the language?",
+    "options": {
+     "en-US": "English (United States)",
+     "es-ES": "Spanish (Spain)",
+     "de-DE": "German (Germany)",
+     "fr-FR": "French (France)",
+     "it-IT": "Italian (Italy)",
+     "zh-CN": "Chinese (Mainland China, Mandarin)"
+    }
+   },
+   "gender": {
+    "kind": "options",
+    "question": "Should the voice sound male or female?",
+    "stated": "Does the request say whether the voice should be male or female?",
+    "options": {
+     "male": "a male voice, a man's voice",
+     "female": "a female voice, a woman's voice"
+    }
+   },
+   "format": {
+    "kind": "options",
+    "question": "What type of audio file should be produced?",
+    "stated": "Does the request say what type of audio file is wanted?",
+    "options": {
+     "mp3": "an MP3 audio file",
+     "wav": "a WAV audio file",
+     "ogg": "an OGG audio file"
+    }
+   },
+   "speed": {
+    "kind": "number",
+    "question": "How fast should the speech be, where 1.0 is normal speed?",
+    "stated": "Does the request say how fast the speech should be?"
+   }
+  }
+ },
+ "30dc33e4eaa0d4a3": {
+  "name": "text_to_speech.convert",
+  "parameters": {
+   "text": {
+    "kind": "text",
+    "question": "What words should be spoken aloud?"
+   },
+   "language": {
+    "kind": "options",
+    "question": "What language is the text written in?",
+    "stated": "Does the request say anything about the language?",
+    "options": {
+     "en-US": "English (United States)",
+     "es-ES": "Spanish (Spain)",
+     "de-DE": "German (Germany)",
+     "fr-FR": "French (France)",
+     "it-IT": "Italian (Italy)"
+    }
+   },
+   "gender": {
+    "kind": "options",
+    "question": "Should the voice sound male or female?",
+    "stated": "Does the request say whether the voice should be male or female?",
+    "options": {
+     "male": "a male voice, a man's voice",
+     "female": "a female voice, a woman's voice"
+    }
+   },
+   "speed": {
+    "kind": "number",
+    "question": "How fast should the speech be, from 0.5 (slow) to 2.0 (fast)?",
+    "stated": "Does the request say how fast the speech should be?"
+   }
+  }
+ },
+ "f4c6a926c72e4e1f": {
+  "name": "requests.get",
+  "parameters": {
+   "anchor": {
+    "kind": "options",
+    "question": "Should every business unit product be listed, or only the user's own?",
+    "options": {
+     "all": "all available products",
+     "user": "only the products associated with the user, my products"
+    }
+   }
+  }
+ },
+ "2644f72e42665015": {
+  "name": "play_song",
+  "parameters": {
+   "song_id": {
+    "kind": "text",
+    "question": "Which song should be played?"
+   },
+   "artist": {
+    "kind": "text",
+    "question": "Who performs the song?",
+    "stated": "Does the request name the artist?"
+   },
+   "quality": {
+    "kind": "options",
+    "question": "How good should the streaming sound quality be?",
+    "stated": "Does the request say anything about sound quality?",
+    "options": {
+     "low": "low quality, to save data",
+     "medium": "medium, normal quality",
+     "high": "high quality, the best sound"
+    }
+   },
+   "device_id": {
+    "kind": "text",
+    "question": "Which device should the song play on?",
+    "stated": "Does the request say which device to play on?"
+   }
+  }
+ },
+ "875a65270bb5c528": {
+  "name": "reschedule_event",
+  "parameters": {
+   "event_identifier": {
+    "kind": "text",
+    "question": "Which event is being moved?"
+   },
+   "new_datetime": {
+    "kind": "text",
+    "question": "What new date and time should the event be moved to?"
+   }
+  }
+ },
+ "902557a5f1bd090b": {
+  "name": "book_flight",
+  "parameters": {
+   "departure_location": {
+    "kind": "place",
+    "question": "Which city does the flight leave from?",
+    "place_format": "city, state_abbr",
+    "no_state": "city, country"
+   },
+   "departure_time": {
+    "kind": "text",
+    "question": "On what date and at what time does the flight leave?"
+   },
+   "return_time": {
+    "kind": "text",
+    "question": "On what date and at what time is the return flight?",
+    "stated": "Does the request mention a return flight?"
+   }
+  }
+ },
+ "229ecf25873df65d": {
+  "name": "book_flight",
+  "parameters": {
+   "departure_location": {
+    "kind": "place",
+    "question": "Which city does the flight leave from?",
+    "place_format": "city, state_abbr",
+    "no_state": "city, country"
+   },
+   "departure_time": {
+    "kind": "text",
+    "question": "On what date and at what time does the flight leave?"
+   },
+   "return_time": {
+    "kind": "text",
+    "question": "On what date and at what time is the return flight?",
+    "stated": "Does the request mention a return flight?"
+   }
+  }
+ },
+ "1e6a0667a8702f9e": {
+  "name": "play_spotify_song",
+  "parameters": {
+   "query": {
+    "kind": "text",
+    "question": "Which song, and by which artist, should be searched for and played?"
+   },
+   "shuffle": {
+    "kind": "flag",
+    "question": "Should the songs be played in shuffled, random order?",
+    "stated": "Does the request say anything about shuffling?"
+   },
+   "volume": {
+    "kind": "number",
+    "question": "How loud should playback be, as a percentage from 0 to 100?",
+    "stated": "Does the request say how loud the music should be?"
+   }
+  }
+ },
+ "e69a9655da534b77": {
+  "name": "play_spotify_song",
+  "parameters": {
+   "query": {
+    "kind": "text",
+    "question": "Which song, and by which artist, should be searched for and played?"
+   },
+   "shuffle": {
+    "kind": "flag",
+    "question": "Should the songs be played in shuffled, random order?",
+    "stated": "Does the request say anything about shuffling?"
+   },
+   "volume": {
+    "kind": "number",
+    "question": "How loud should playback be, as a percentage from 0 to 100?",
+    "stated": "Does the request say how loud the music should be?"
+   }
+  }
+ },
+ "31fff1a6f5dfd1c8": {
+  "name": "play_spotify_song",
+  "parameters": {
+   "query": {
+    "kind": "text",
+    "question": "Which song, and by which artist, should be searched for and played?"
+   },
+   "device_id": {
+    "kind": "text",
+    "question": "Which device should the song play on?",
+    "stated": "Does the request say which device to play on?"
+   },
+   "play": {
+    "kind": "flag",
+    "question": "Should the song start playing right away once it is found?",
+    "stated": "Does the request say whether the song should start playing right away?"
+   }
+  }
+ },
+ "f1537b2ba8538b41": {
+  "name": "set_volume",
+  "parameters": {
+   "volume": {
+    "kind": "number",
+    "question": "How loud should playback be, as a percentage from 0 to 100?"
+   }
+  }
+ },
+ "e07375dd16e2923b": {
+  "name": "book_flight",
+  "parameters": {
+   "departure_location": {
+    "kind": "text",
+    "question": "Which city or airport does the flight leave from?"
+   },
+   "departure_date": {
+    "kind": "date",
+    "question": "On what day does the flight leave?",
+    "format": "%d/%m/%Y"
+   },
+   "departure_time": {
+    "kind": "text",
+    "question": "At what time of day does the flight leave?"
+   }
+  }
+ },
+ "e38a973310aa4064": {
+  "name": "book_flight",
+  "parameters": {
+   "departure_location": {
+    "kind": "place",
+    "question": "Which city or airport does the flight leave from?",
+    "place_format": "city, state_abbr",
+    "no_state": "city"
+   },
+   "departure_time": {
+    "kind": "date",
+    "question": "On what day does the flight leave?",
+    "format": "%d/%m/%Y"
+   }
+  }
+ },
+ "dd879d0c81f14738": {
+  "name": "version_api.VersionApi.get_version",
+  "parameters": {}
+ },
+ "1bbb331dd1c59e8b": {
+  "name": "acl_api.AclApi.retrieve_projects",
+  "parameters": {
+   "uuid": {
+    "kind": "text",
+    "question": "Which team's projects are wanted?"
+   },
+   "excludeInactive": {
+    "kind": "flag",
+    "question": "Should inactive projects be left out?",
+    "stated": "Does the request say anything about inactive projects?"
+   },
+   "onlyRoot": {
+    "kind": "flag",
+    "question": "Should only top-level projects be returned, leaving out child projects?",
+    "stated": "Does the request say anything about top-level or child projects?"
+   }
+  }
+ },
+ "76521be4093803ef": {
+  "name": "chat_with_friend",
+  "parameters": {
+   "user_message": {
+    "kind": "text",
+    "question": "What does the user want to say to the bunny?"
+   }
+  }
+ },
+ "a2ba0f071ac9eed6": {
+  "name": "uber.eat.order",
+  "parameters": {
+   "restaurants": {
+    "kind": "text",
+    "question": "Which restaurant is the food being ordered from?"
+   },
+   "items": {
+    "kind": "text",
+    "question": "Which food items are being ordered?"
+   },
+   "quantities": {
+    "kind": "text",
+    "question": "How many of each food item are being ordered, in the same order as the items?"
+   }
+  }
+ },
+ "dff987075bf155bc": {
+  "name": "flight.status.check",
+  "parameters": {
+   "flight_id": {
+    "kind": "text",
+    "question": "Which flight is being checked?"
+   },
+   "passenger_name": {
+    "kind": "text",
+    "question": "What is the passenger's name?"
+   },
+   "ticket_number": {
+    "kind": "text",
+    "question": "What is the passenger's ticket number?"
+   }
+  }
+ },
+ "f077031fcaa6ebf9": {
+  "name": "flight.status.check",
+  "parameters": {
+   "airlines": {
+    "kind": "text",
+    "question": "Which airline is the flight with?"
+   },
+   "person_name": {
+    "kind": "text",
+    "question": "What is the passenger's name?"
+   },
+   "ticket_number": {
+    "kind": "text",
+    "question": "What is the passenger's ticket number?"
+   }
+  }
+ },
+ "1ee1b3c592ca18fe": {
+  "name": "uber.eat.order",
+  "parameters": {
+   "restaurants": {
+    "kind": "text",
+    "question": "Which restaurant is the food being ordered from?"
+   },
+   "items": {
+    "kind": "text",
+    "question": "Which food items are being ordered?"
+   },
+   "quantities": {
+    "kind": "text",
+    "question": "How many of each food item are being ordered, in the same order as the items?"
+   }
+  }
+ },
+ "1d81a897a772f526": {
+  "name": "user.mandates",
+  "parameters": {
+   "user_id": {
+    "kind": "text",
+    "question": "Which user's mandates are wanted?"
+   },
+   "status": {
+    "kind": "options",
+    "question": "What state should the mandates be in?",
+    "stated": "Does the request say what state the mandates should be in?",
+    "options": {
+     "active": "mandates currently in force",
+     "pending": "mandates awaiting approval or not yet started",
+     "inactive": "mandates that are no longer in force, cancelled or expired"
+    }
+   }
+  }
+ }
+}

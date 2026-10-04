@@ -1,13 +1,16 @@
 """Pydantic models for parsed data and saved predictions."""
 
+from hashlib import sha1
 from typing import Literal, Self
 
 from pydantic import BaseModel, JsonValue, model_validator
 
 Split = Literal["simple", "multiple", "irrelevance", "live_simple"]
 Stage = Literal["dev", "test"]
+Method = Literal["words", "spec"]
 Kind = Literal["words", "choice", "flag", "set"]
-SCALARS = ("string", "integer", "float")
+NUMBERS = ("integer", "float")
+SCALARS = ("string", *NUMBERS)
 
 
 class Parameter(BaseModel, frozen=True):
@@ -46,6 +49,11 @@ class Function(BaseModel, frozen=True):
     name: str
     description: str
     parameters: tuple[Parameter, ...]
+
+    @property
+    def key(self) -> str:
+        """A stable identifier for this exact definition, used to find its spec."""
+        return sha1(self.model_dump_json().encode()).hexdigest()[:16]
 
 
 class Gold(BaseModel, frozen=True):
@@ -108,6 +116,7 @@ class Prediction(BaseModel, frozen=True):
     """
 
     example: Example
+    method: Method
     call: Call | None
     tool_probabilities: dict[str, float]
     choices: dict[str, dict[str, float]]

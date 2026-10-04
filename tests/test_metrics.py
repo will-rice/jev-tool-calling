@@ -49,6 +49,7 @@ def predict(example: Example, call: Call | None) -> Prediction:
     """Wrap a call as a saved prediction."""
     return Prediction(
         example=example,
+        method="words",
         call=call,
         tool_probabilities={},
         choices={},

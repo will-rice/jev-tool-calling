@@ -13,7 +13,8 @@ from jevtools.config import MAX_WORKERS, RESULTS_DIR, RUNS, SPLITS
 from jevtools.data import load_examples
 from jevtools.jev import predict
 from jevtools.metrics import evaluate, summarize
-from jevtools.models import Split, Stage
+from jevtools.models import Method, Split, Stage
+from jevtools.spec import load_specs
 
 
 def main() -> None:
@@ -28,17 +29,23 @@ def main() -> None:
         help="Run the dev split once, or the test splits three times.",
     )
     parser.add_argument(
+        "method",
+        choices=get_args(Method),
+        help="Ask arguments from the schema alone, or from the authored spec.",
+    )
+    parser.add_argument(
         "--limit", type=int, help="Evaluate only the first N queries of each split."
     )
     args = parser.parse_args()
     splits = SPLITS[args.stage]
     run_numbers = range(1, RUNS[args.stage] + 1)
     paths = {
-        (split, run): results_path(split, run, args.limit)
+        (split, run): results_path(split, args.method, run, args.limit)
         for run in run_numbers
         for split in splits
     }
     load_dotenv()
+    specs = load_specs(args.stage) if args.method == "spec" else {}
 
     examples = {split: load_examples(split)[: args.limit] for split in splits}
     RESULTS_DIR.mkdir(exist_ok=True)
@@ -48,7 +55,7 @@ def main() -> None:
             predictions = []
             for split in splits:
                 rows = thread_map(
-                    lambda example: predict(client, example),
+                    lambda example: predict(client, example, args.method, specs),
                     examples[split],
                     max_workers=MAX_WORKERS,
                     desc=f"{split} run {run}",
@@ -72,15 +79,15 @@ def main() -> None:
         logging.info("%s: mean %.4f, range %.4f to %.4f", name, mean, low, high)
 
 
-def results_path(split: Split, run: int, limit: int | None) -> Path:
-    """Return where one run of a split saves its predictions.
+def results_path(split: Split, method: Method, run: int, limit: int | None) -> Path:
+    """Return where one run of a split under a method saves its predictions.
 
     A limited run gets its own file so it cannot overwrite a full run.
 
     Raises:
         ValueError: If the limit is not positive.
     """
-    stem = f"{split}-run{run}"
+    stem = f"{split}-{method}-run{run}"
     if limit is None:
         return RESULTS_DIR / f"{stem}.jsonl"
     if limit < 1:
