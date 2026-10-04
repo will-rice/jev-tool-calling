@@ -10,10 +10,17 @@ MODEL = "jev-latest"
 MAX_WORKERS = 8
 SPLITS: dict[Stage, tuple[Split, ...]] = {
     "dev": ("live_simple",),
-    "test": ("simple", "multiple", "irrelevance"),
+    "test": (
+        "simple",
+        "multiple",
+        "irrelevance",
+        "live_multiple",
+        "live_irrelevance",
+        "live_relevance",
+    ),
 }
 RUNS: dict[Stage, int] = {"dev": 1, "test": 3}
-MAX_WORDS = 95
+UNANSWERED: tuple[Split, ...] = ("irrelevance", "live_irrelevance", "live_relevance")
 MAX_GAP = 2
 THRESHOLD = 0.5
 LABEL_THRESHOLD = 0.7
@@ -30,5 +37,7 @@ WORD_PATTERN = (
     r"|\w+|[^\w\s]"
 )
 MAX_OPTIONS = 255
+CONTEXT_WORDS = 95
+BATCH_CHARACTERS = 120_000
 RESULTS_DIR = Path("results")
 SPEC_DIR = Path("specs")

@@ -5,7 +5,15 @@ from typing import Literal, Self
 
 from pydantic import BaseModel, JsonValue, model_validator
 
-Split = Literal["simple", "multiple", "irrelevance", "live_simple"]
+Split = Literal[
+    "simple",
+    "multiple",
+    "irrelevance",
+    "live_simple",
+    "live_multiple",
+    "live_irrelevance",
+    "live_relevance",
+]
 Stage = Literal["dev", "test"]
 Method = Literal["words", "spec"]
 Kind = Literal["words", "choice", "flag", "set"]
@@ -67,11 +75,16 @@ class Gold(BaseModel, frozen=True):
 
 
 class Example(BaseModel, frozen=True):
-    """A query with the functions offered for it and its gold call, if any."""
+    """A query with the functions offered for it and its gold call, if any.
+
+    The query is the last user message. `context` holds any messages before
+    it as (role, content) pairs.
+    """
 
     id: str
     split: Split
     query: str
+    context: tuple[tuple[str, str], ...] = ()
     functions: tuple[Function, ...]
     gold: Gold | None
 

@@ -2955,5 +2955,630 @@
         }
       }
     }
+  },
+  "2dcb0e4872c03eba": {
+    "name": "get_movies",
+    "parameters": {
+      "city": {
+        "kind": "place",
+        "question": "In which city should movies be looked up?",
+        "place_format": "city",
+        "no_state": "city"
+      },
+      "cinema_hall": {
+        "kind": "text",
+        "question": "At which cinema should the movies be showing?",
+        "stated": "Does the request name a particular cinema or theatre?"
+      },
+      "movie_date": {
+        "kind": "date",
+        "question": "On what day should the movies be showing?",
+        "stated": "Does the request say which day the movies should be showing?",
+        "format": "%d %b, %Y"
+      },
+      "movie_language": {
+        "kind": "options",
+        "question": "In what language should the movies be?",
+        "stated": "Does the request say what language the movies should be in?",
+        "options": {
+          "Hindi": "Hindi-language films",
+          "English": "English-language films",
+          "Malayalam": "Malayalam-language films",
+          "Telugu": "Telugu-language films",
+          "Punjabi": "Punjabi-language films"
+        },
+        "open": true
+      },
+      "movie_format": {
+        "kind": "options",
+        "question": "In which screening format should the movies be shown?",
+        "stated": "Does the request mention a screening format such as 2D, 3D or IMAX?",
+        "options": {
+          "2D": "a regular 2D screening",
+          "3D": "a 3D screening",
+          "4DX": "a 4DX screening with motion seats and effects",
+          "2D Screen X": "a 2D Screen X panoramic screening",
+          "ICE": "an ICE immersive screening",
+          "IMAX 2D": "an IMAX 2D screening"
+        }
+      }
+    }
+  },
+  "28f4b9d0d4006822": {
+    "name": "get_movies",
+    "parameters": {
+      "city": {
+        "kind": "place",
+        "question": "In which city should movies be looked up?",
+        "place_format": "city",
+        "no_state": "city"
+      },
+      "cinema_hall": {
+        "kind": "text",
+        "question": "At which cinema should the movies be showing?",
+        "stated": "Does the request name a particular cinema or theatre?"
+      },
+      "movie_date": {
+        "kind": "date",
+        "question": "On what day should the movies be showing?",
+        "stated": "Does the request say which day the movies should be showing?",
+        "format": "%Y-%m-%d"
+      },
+      "movie_language": {
+        "kind": "options",
+        "question": "In what language should the movies be?",
+        "stated": "Does the request say what language the movies should be in?",
+        "options": {
+          "English": "English-language films",
+          "Spanish": "Spanish-language films"
+        },
+        "open": true
+      },
+      "movie_format": {
+        "kind": "options",
+        "question": "In which screening format should the movies be shown?",
+        "stated": "Does the request mention a screening format such as 2D, 3D or IMAX?",
+        "options": {
+          "2D": "a regular 2D screening",
+          "3D": "a 3D screening",
+          "IMAX": "an IMAX screening"
+        }
+      }
+    }
+  },
+  "2fc44c1b16a34b52": {
+    "name": "inventory.restock_check",
+    "parameters": {
+      "item_ids": {
+        "kind": "text",
+        "question": "Which items, by their ID numbers, should be checked?"
+      },
+      "threshold": {
+        "kind": "number",
+        "question": "Below what stock level should an item be restocked?"
+      },
+      "include_discontinued": {
+        "kind": "flag",
+        "question": "Should discontinued items be included in the check?",
+        "stated": "Does the request say anything about discontinued items?"
+      }
+    }
+  },
+  "f7c21a6ee60a9743": {
+    "name": "send_email",
+    "parameters": {
+      "to_address": {
+        "kind": "text",
+        "question": "What is the email address of the person the email goes to?"
+      },
+      "subject": {
+        "kind": "text",
+        "question": "What should the subject line of the email be?"
+      },
+      "body": {
+        "kind": "text",
+        "question": "What should the email say?",
+        "stated": "Does the request say what the email should contain?"
+      },
+      "cc_address": {
+        "kind": "text",
+        "question": "Whose email address should be copied in (CC)?",
+        "stated": "Does the request ask to CC anyone?"
+      },
+      "bcc_address": {
+        "kind": "text",
+        "question": "Whose email address should be blind-copied (BCC)?",
+        "stated": "Does the request ask to BCC anyone?"
+      },
+      "attachments": {
+        "kind": "text",
+        "question": "Which files should be attached to the email?",
+        "stated": "Does the request mention any files to attach?"
+      }
+    }
+  },
+  "56db5740c7cd30d8": {
+    "name": "record",
+    "parameters": {
+      "acc_routing_start": {
+        "kind": "text",
+        "question": "Which of the given customer queries are about bank routing numbers or account numbers?"
+      },
+      "activate_card_start": {
+        "kind": "text",
+        "question": "Which of the given customer queries are about activating a new bank card?"
+      },
+      "atm_finder_start": {
+        "kind": "text",
+        "question": "Which of the given customer queries are about finding ATM locations?"
+      },
+      "auto_loan_payment_start": {
+        "kind": "text",
+        "question": "Which of the given customer queries are about making payments on a car loan?"
+      },
+      "bank_hours_start": {
+        "kind": "text",
+        "question": "Which of the given customer queries are about the opening hours or locations of bank branches?"
+      },
+      "cancel_card_start": {
+        "kind": "text",
+        "question": "Which of the given customer queries are about cancelling a bank card?"
+      },
+      "card_rewards_start": {
+        "kind": "text",
+        "question": "Which of the given customer queries are about rewards points or benefits of a bank card?"
+      },
+      "cashier_check_start": {
+        "kind": "text",
+        "question": "Which of the given customer queries are about getting a cashier's check or bank draft?"
+      },
+      "clean_goodbye_start": {
+        "kind": "text",
+        "question": "Which of the given customer queries are about saying goodbye or ending the conversation?"
+      }
+    }
+  },
+  "ff8c79a8a2e8843b": {
+    "name": "record",
+    "parameters": {
+      "faq_describe_telephone_banking_start": {
+        "kind": "text",
+        "question": "Which of the given customer queries are about starting or signing up for telephone banking?"
+      },
+      "bank_hours_start": {
+        "kind": "text",
+        "question": "Which of the given customer queries are about the opening hours or locations of bank branches?"
+      },
+      "faq_describe_accounts_start": {
+        "kind": "text",
+        "question": "Which of the given customer queries are about descriptions of the different types of bank accounts?"
+      }
+    }
+  },
+  "17aa23c224d62126": {
+    "name": "record",
+    "parameters": {
+      "money_movement_start": {
+        "kind": "text",
+        "question": "Which of the given customer queries are about transferring money between accounts?"
+      },
+      "get_transactions_start": {
+        "kind": "text",
+        "question": "Which of the given customer queries are about viewing transactions such as deposits and purchases?"
+      },
+      "credit_limit_increase_start": {
+        "kind": "text",
+        "question": "Which of the given customer queries are about raising a credit card limit or complaining about the current limit?"
+      },
+      "faq_link_accounts_start": {
+        "kind": "text",
+        "question": "Which of the given customer queries are about linking accounts together at the bank?"
+      }
+    }
+  },
+  "8f7ad5ff700ab092": {
+    "name": "calculate_dynamic_pricing",
+    "parameters": {
+      "geolocation": {
+        "kind": "text",
+        "question": "What are the latitude and longitude of the customer?"
+      },
+      "base_price": {
+        "kind": "number",
+        "question": "What is the starting price of the service before any location adjustment?"
+      },
+      "minimum_price": {
+        "kind": "number",
+        "question": "What is the lowest price that may be charged?"
+      },
+      "location_multiplier": {
+        "kind": "number",
+        "question": "By what factor should the price be scaled for the customer's area?",
+        "stated": "Does the request give a multiplier for the customer's location?"
+      }
+    }
+  },
+  "aa3f3a5bafcd702c": {
+    "name": "pipeline",
+    "parameters": {
+      "image_path": {
+        "kind": "text",
+        "question": "Where is the image file to be described?"
+      },
+      "question": {
+        "kind": "text",
+        "question": "What detailed question should the image description answer?"
+      }
+    }
+  },
+  "7086c849144ae5c4": {
+    "name": "get_copyright_info",
+    "parameters": {
+      "copyright_content": {
+        "kind": "text",
+        "question": "What is the content that is claimed to be copyrighted?"
+      },
+      "copyright_holder": {
+        "kind": "text",
+        "question": "Who owns the copyright?"
+      },
+      "confidence_score": {
+        "kind": "number",
+        "question": "How confident is the copyright information, as a percentage?"
+      }
+    }
+  },
+  "716d6ee3ab9fcd63": {
+    "name": "extractor.extract_information",
+    "parameters": {
+      "data": {
+        "kind": "skip",
+        "question": "What records of people should be processed?"
+      },
+      "schema": {
+        "kind": "options",
+        "question": "What type of information should be pulled out of the records?",
+        "stated": "Does the request say what type of information to extract?",
+        "options": {
+          "personal_info": "personal details such as name and age",
+          "employment_record": "job and work history details",
+          "educational_background": "schooling and education details"
+        }
+      }
+    }
+  },
+  "ae1811cc58c53127": {
+    "name": "get_service_id",
+    "parameters": {
+      "service_id": {
+        "kind": "options",
+        "question": "Which kind of housekeeping service is wanted?",
+        "options": {
+          "1": "cleaning",
+          "2": "ironing",
+          "7": "massage",
+          "13": "big cleaning"
+        }
+      },
+      "unit": {
+        "kind": "number",
+        "question": "How many units of the service are wanted?",
+        "stated": "Does the request say how many units of the service are wanted?"
+      }
+    }
+  },
+  "c42c059fa94f126a": {
+    "name": "get_service_id",
+    "parameters": {
+      "service_id": {
+        "kind": "options",
+        "question": "Which kind of housekeeping service is wanted?",
+        "options": {
+          "1": "cleaning service",
+          "2": "ironing service"
+        }
+      },
+      "unit": {
+        "kind": "options",
+        "question": "Is the service counted per session or per hour?",
+        "stated": "Does the request say whether the service is counted in sessions or hours?",
+        "options": {
+          "session": "counted by session",
+          "hour": "counted by the hour"
+        }
+      }
+    }
+  },
+  "57344f1469172825": {
+    "name": "get_service_id",
+    "parameters": {
+      "service_id": {
+        "kind": "options",
+        "question": "Which kind of housekeeping service is wanted?",
+        "options": {
+          "1": "cleaning service",
+          "2": "ironing service"
+        }
+      },
+      "unit": {
+        "kind": "number",
+        "question": "How many units of the service are wanted?",
+        "stated": "Does the request say how many units of the service are wanted?"
+      }
+    }
+  },
+  "34a7e15e74d75a53": {
+    "name": "get_service_id",
+    "parameters": {
+      "service_id": {
+        "kind": "options",
+        "question": "Which kind of housekeeping service is wanted?",
+        "options": {
+          "1": "cleaning service",
+          "2": "ironing service"
+        }
+      },
+      "unit": {
+        "kind": "number",
+        "question": "How many sessions of the service are wanted?",
+        "stated": "Does the request say how many units of the service are wanted?"
+      }
+    }
+  },
+  "832388fa6acc3588": {
+    "name": "get_service_id",
+    "parameters": {
+      "service_id": {
+        "kind": "options",
+        "question": "Which kind of housekeeping service is wanted?",
+        "options": {
+          "1": "cleaning service",
+          "2": "ironing service",
+          "3": "extensive cleaning service"
+        }
+      },
+      "province_id": {
+        "kind": "options",
+        "question": "Which province should the service be in?",
+        "options": {
+          "1": "Bangkok",
+          "2": "Chiang Mai",
+          "3": "Chonburi"
+        }
+      }
+    }
+  },
+  "64fc3ab2df3fb4d0": {
+    "name": "getDataForProfessional",
+    "parameters": {
+      "avg_rating": {
+        "kind": "number",
+        "question": "What review score should the professionals have?",
+        "stated": "Does the request mention a rating or review score?"
+      },
+      "province_id": {
+        "kind": "options",
+        "question": "Which province should the service be in?",
+        "options": {
+          "1": "Bangkok",
+          "2": "Chiang Mai",
+          "3": "Chonburi"
+        },
+        "open": true
+      },
+      "districts_name": {
+        "kind": "text",
+        "question": "In which district should the professionals work?",
+        "stated": "Does the request name a district?"
+      },
+      "service_id": {
+        "kind": "options",
+        "question": "Which kind of housekeeping service is wanted?",
+        "stated": "Does the request say which kind of service is wanted?",
+        "options": {
+          "1": "cleaning service",
+          "2": "ironing service",
+          "3": "deep cleaning service"
+        },
+        "open": true
+      }
+    }
+  },
+  "1c75fc39474451dc": {
+    "name": "getDataForProfessional",
+    "parameters": {
+      "service_id": {
+        "kind": "options",
+        "question": "Which kind of housekeeping service is wanted?",
+        "options": {
+          "1": "cleaning service",
+          "2": "ironing service",
+          "3": "big cleaning service"
+        },
+        "open": true
+      },
+      "province_id": {
+        "kind": "options",
+        "question": "Which province should the service be in?",
+        "options": {
+          "1": "Bangkok",
+          "2": "Chiang Mai",
+          "3": "Chonburi"
+        },
+        "open": true
+      },
+      "district_name": {
+        "kind": "text",
+        "question": "In which district should the professionals work?",
+        "stated": "Does the request name a district?"
+      },
+      "rating": {
+        "kind": "number",
+        "question": "What is the lowest review score the professionals may have?",
+        "stated": "Does the request mention a rating or review score?"
+      }
+    }
+  },
+  "dfb06008c470b6b2": {
+    "name": "getDataForProfessional",
+    "parameters": {
+      "service_id": {
+        "kind": "options",
+        "question": "Which kind of housekeeping service is wanted?",
+        "options": {
+          "1": "cleaning service",
+          "2": "ironing service",
+          "3": "big cleaning service"
+        }
+      },
+      "province_id": {
+        "kind": "options",
+        "question": "Which province should the service be in?",
+        "options": {
+          "1": "Bangkok",
+          "2": "Chiang Mai",
+          "3": "Chonburi"
+        }
+      },
+      "district_name": {
+        "kind": "text",
+        "question": "In which district is the service needed?",
+        "stated": "Does the request name a district?"
+      },
+      "sub_district_name": {
+        "kind": "text",
+        "question": "In which sub-district is the service needed?",
+        "stated": "Does the request name a sub-district?"
+      },
+      "start_available_date": {
+        "kind": "date",
+        "question": "From when should the professional be available?",
+        "stated": "Does the request say from when the professional should be available?",
+        "format": "%Y-%m-%d %H:%M:%S"
+      },
+      "end_available_date": {
+        "kind": "date",
+        "question": "Until when should the professional be available?",
+        "stated": "Does the request say until when the professional should be available?",
+        "format": "%Y-%m-%d %H:%M:%S"
+      },
+      "has_late_check_in": {
+        "kind": "flag",
+        "question": "Should the professionals be ones who have a record of checking in late?",
+        "stated": "Does the request say anything about late check-ins?"
+      },
+      "rating": {
+        "kind": "number",
+        "question": "What review score should the professionals have?",
+        "stated": "Does the request mention a rating or review score?"
+      }
+    }
+  },
+  "cd345d009383242a": {
+    "name": "extractor.extract_information",
+    "parameters": {
+      "data": {
+        "kind": "skip",
+        "question": "What records of people should be processed?"
+      }
+    }
+  },
+  "6876bbb7ad1d92da": {
+    "name": "answer_question",
+    "parameters": {
+      "statement": {
+        "kind": "text",
+        "question": "What is the user's question that should be handed to a human agent?"
+      },
+      "urgency": {
+        "kind": "options",
+        "question": "How urgently does the question need an answer?",
+        "stated": "Does the request say how urgent the question is?",
+        "options": {
+          "low": "not urgent, can wait",
+          "medium": "moderately urgent",
+          "high": "urgent, needs an answer right away"
+        }
+      },
+      "language": {
+        "kind": "options",
+        "question": "In what language is the question asked?",
+        "stated": "Does the request say what language the question is in?",
+        "options": {
+          "en": "English",
+          "es": "Spanish",
+          "fr": "French",
+          "de": "German",
+          "it": "Italian",
+          "pt": "Portuguese",
+          "nl": "Dutch",
+          "ru": "Russian",
+          "zh": "Chinese",
+          "ja": "Japanese",
+          "ko": "Korean",
+          "ar": "Arabic",
+          "hi": "Hindi",
+          "tr": "Turkish",
+          "vi": "Vietnamese",
+          "th": "Thai",
+          "id": "Indonesian",
+          "pl": "Polish",
+          "sv": "Swedish",
+          "el": "Greek",
+          "he": "Hebrew",
+          "uk": "Ukrainian"
+        },
+        "open": true
+      }
+    }
+  },
+  "adb660778e82828d": {
+    "name": "answer_question",
+    "parameters": {
+      "statement": {
+        "kind": "text",
+        "question": "What is the user's question that should be handed to a human agent?"
+      },
+      "urgency": {
+        "kind": "options",
+        "question": "How urgently does the question need an answer?",
+        "stated": "Does the request say how urgent the question is?",
+        "options": {
+          "low": "not urgent, can wait",
+          "medium": "moderately urgent",
+          "high": "urgent, needs an answer right away"
+        }
+      },
+      "language": {
+        "kind": "options",
+        "question": "In what language is the question asked?",
+        "stated": "Does the request say what language the question is in?",
+        "options": {
+          "en": "English",
+          "es": "Spanish",
+          "fr": "French",
+          "de": "German",
+          "it": "Italian",
+          "pt": "Portuguese",
+          "nl": "Dutch",
+          "ru": "Russian",
+          "zh": "Chinese",
+          "ja": "Japanese",
+          "ko": "Korean",
+          "ar": "Arabic",
+          "hi": "Hindi",
+          "tr": "Turkish",
+          "vi": "Vietnamese",
+          "th": "Thai",
+          "id": "Indonesian",
+          "pl": "Polish",
+          "sv": "Swedish",
+          "el": "Greek",
+          "he": "Hebrew",
+          "uk": "Ukrainian"
+        },
+        "open": true
+      }
+    }
   }
 }

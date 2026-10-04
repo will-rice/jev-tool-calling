@@ -106,6 +106,13 @@ def test_matches_rejects_a_wrong_value() -> None:
     assert not matches(EXAMPLE, call)
 
 
+def test_matches_any_call_on_a_relevance_query() -> None:
+    """A relevance query is right when some function is called, whichever."""
+    relevant = IRRELEVANT.model_copy(update={"split": "live_relevance"})
+    assert matches(relevant, GOOD)
+    assert not matches(relevant, None)
+
+
 def test_matches_abstention_on_an_irrelevant_query() -> None:
     """With no gold call, the right answer is no call."""
     assert matches(IRRELEVANT, None)

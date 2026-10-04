@@ -69,8 +69,11 @@ def argument_accuracy(predictions: Sequence[Prediction]) -> float:
 def matches(example: Example, call: Call | None) -> bool:
     """Decide whether a predicted call is correct under BFCL's AST match.
 
-    With no gold call, the correct prediction is no call.
+    With no gold call, the correct prediction is no call, except on a
+    relevance split, where it is any call.
     """
+    if example.split == "live_relevance":
+        return call is not None
     if example.gold is None:
         return call is None
     function, accepted = example.target
