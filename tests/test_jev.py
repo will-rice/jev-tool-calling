@@ -1,9 +1,17 @@
 """Tests for question building and answer decoding."""
 
 import pytest
-from typesafe_sdk import Choice, Noul
+from typesafe_sdk import Choice, Noul, SystemOneResponse, Usage
 
-from jevtools.jev import argument_questions, tool_question, word_spans
+from jevtools.jev import (
+    argument_questions,
+    coerce,
+    decode_arguments,
+    input_tokens,
+    tool_question,
+    word_spans,
+    word_values,
+)
 from jevtools.models import Function, Parameter
 
 AREA = Function(
@@ -166,3 +174,172 @@ def test_open_parameter_named_none_is_rejected() -> None:
     )
     with pytest.raises(ValueError, match="collides"):
         argument_questions("a b", clash)
+
+
+ROUTE = Function(
+    name="route",
+    description="Plan a route.",
+    parameters=(
+        Parameter(name="city", type="string", description="City.", required=True),
+        Parameter(
+            name="stops",
+            type="array",
+            description="Stops.",
+            required=False,
+            item_type="string",
+        ),
+        Parameter(name="speed", type="float", description="Speed.", required=False),
+    ),
+)
+AREA_NOULS = {
+    "stated.unit": 0.9,
+    "flag.round": 0.2,
+    "member.tags.a": 0.8,
+    "member.tags.b": 0.1,
+}
+
+
+def labels(*names: str) -> dict[str, str]:
+    """Build the token answers for a query, one label per word."""
+    return {f"token_{index}": name for index, name in enumerate(names)}
+
+
+@pytest.mark.parametrize(
+    ("text", "value_type", "value"),
+    [
+        ("10", "integer", 10),
+        ("-3", "integer", -3),
+        ("4.", "integer", 4),
+        ("(5", "integer", 5),
+        ("ten", "integer", None),
+        ("200,000", "integer", None),
+        ("2.5", "integer", None),
+        ("2.5", "float", 2.5),
+        ("5", "float", 5.0),
+        ("1e-9", "float", 1e-9),
+        ("$5", "float", 5.0),
+        ("fast", "float", None),
+        ("'Tech Inc'", "string", "Tech Inc"),
+        ("New York,", "string", "New York"),
+        ("?", "string", None),
+    ],
+)
+def test_coerce_parses_a_value_or_gives_nothing(
+    text: str, value_type: str, value: str | float | None
+) -> None:
+    """A value that is not literally of its type is dropped, never converted."""
+    result = coerce(text, value_type)
+    assert result == value
+    assert type(result) is type(value)
+
+
+def test_coerce_rejects_a_type_it_cannot_read_from_words() -> None:
+    """Only strings and numbers are cut from the query."""
+    with pytest.raises(ValueError, match="dict"):
+        coerce("x", "dict")
+
+
+def test_word_values_join_adjacent_words_as_written() -> None:
+    """A value keeps the query's own spacing and punctuation."""
+    query = "drive to New-York fast"
+    values = word_values(
+        query, ROUTE, labels("none", "none", "city", "city", "city", "none")
+    )
+    assert values == {"city": ["New-York"]}
+
+
+def test_word_values_fill_short_gaps_inside_a_scalar_value() -> None:
+    """Small unlabelled words inside a name stay in it."""
+    query = "go to Stratford upon Avon now"
+    values = word_values(
+        query, ROUTE, labels("none", "none", "city", "none", "city", "none")
+    )
+    assert values == {"city": ["Stratford upon Avon"]}
+
+
+def test_word_values_keep_array_elements_apart() -> None:
+    """Gaps are not filled for an array, or its elements would merge."""
+    query = "stop at Santa Barbara and Monterey"
+    values = word_values(
+        query, ROUTE, labels("none", "none", "stops", "stops", "none", "stops")
+    )
+    assert values == {"stops": ["Santa Barbara", "Monterey"]}
+
+
+def test_decode_fills_each_kind_of_argument() -> None:
+    """Words, a choice, a flag, and a set decode into typed values."""
+    choices = {**labels("none", "base"), "choice.unit": "cm"}
+    assert decode_arguments("base 10", AREA, choices, AREA_NOULS) == {
+        "base": 10,
+        "unit": "cm",
+        "round": False,
+        "tags": ["a"],
+    }
+
+
+def test_decode_omits_an_optional_argument_the_query_does_not_state() -> None:
+    """An unstated optional argument is left to the function's default."""
+    choices = {**labels("none", "base"), "choice.unit": "cm"}
+    nouls = {**AREA_NOULS, "stated.unit": 0.1}
+    assert "unit" not in decode_arguments("base 10", AREA, choices, nouls)
+
+
+def test_decode_omits_an_empty_set() -> None:
+    """A set with no member answered yes is not passed as an empty list."""
+    choices = {**labels("none", "base"), "choice.unit": "cm"}
+    nouls = {**AREA_NOULS, "member.tags.a": 0.2}
+    assert "tags" not in decode_arguments("base 10", AREA, choices, nouls)
+
+
+def test_decode_omits_a_number_that_does_not_parse() -> None:
+    """A word that is not a number never reaches a numeric argument."""
+    choices = {**labels("none", "base"), "choice.unit": "cm"}
+    assert "base" not in decode_arguments("base ten", AREA, choices, AREA_NOULS)
+
+
+def test_decode_uses_the_first_run_of_a_scalar() -> None:
+    """A scalar takes one value even if two separate runs carry its label."""
+    choices = labels("city", "none", "none", "none", "city")
+    assert decode_arguments("Paris or maybe then Rome", ROUTE, choices, {}) == {
+        "city": "Paris"
+    }
+
+
+def test_decode_builds_an_array_from_its_runs() -> None:
+    """Each run of an array parameter is one element."""
+    choices = labels("none", "none", "stops", "stops", "none", "stops")
+    query = "stop at Santa Barbara and Monterey"
+    assert decode_arguments(query, ROUTE, choices, {}) == {
+        "stops": ["Santa Barbara", "Monterey"]
+    }
+
+
+def test_decode_omits_an_array_with_an_element_that_does_not_parse() -> None:
+    """One bad element drops the whole array rather than shortening it."""
+    grid = Function(
+        name="grid",
+        description="Grid.",
+        parameters=(
+            Parameter(
+                name="sizes",
+                type="array",
+                description="Sizes.",
+                required=True,
+                item_type="integer",
+            ),
+        ),
+    )
+    choices = labels("sizes", "none", "sizes")
+    assert decode_arguments("3 and four", grid, choices, {}) == {}
+
+
+def test_decode_of_a_function_without_parameters_is_empty() -> None:
+    """A function with nothing to fill decodes without any answers."""
+    assert decode_arguments("ping the service", PING, {}, {}) == {}
+
+
+def test_input_tokens_raises_when_the_response_has_no_usage() -> None:
+    """Missing usage is an error, not zero tokens."""
+    response = SystemOneResponse(model="jev-1.13.0", usage=Usage(), answers={})
+    with pytest.raises(ValueError, match="no input token usage"):
+        input_tokens(response)
