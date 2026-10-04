@@ -1,18 +1,21 @@
 [project]
-name = "agent_harness"
+name = "jevtools"
 version = "0.1.0"
-description = "A general template for AI agent harness bootstrapping."
+description = "Zero-shot evaluation of TypeSafe AI's Jev on BFCL tool calling."
 readme = "README.md"
 authors = [{ name = "Will Rice", email = "wrice20@gmail.com" }]
 requires-python = ">=3.13"
 dependencies = [
+  "huggingface-hub>=2.1.1",
   "pre-commit>=4.6.2",
   "pydantic>=2.13.5",
   "pydocstyle>=6.3.0",
   "pytest>=9.1.1",
   "python-dotenv>=1.2.3",
   "ruff>=0.16.8",
+  "tqdm>=4.70.1",
   "ty>=0.0.83",
+  "typesafe-sdk>=0.7.2",
 ]
 
 [build-system]
@@ -20,10 +23,10 @@ requires = ["uv_build>=0.12.18"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
-module-name = ["agent_harness"]
+module-name = ["jevtools"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["agent_harness"]
+known-first-party = ["jevtools"]
 
 [tool.ruff.lint]
 select = ["C", "E", "F", "I", "W", "D", "N", "B", "PTH", "ANN"]
@@ -34,4 +37,5 @@ exclude = [".venv"]
 convention = "google"
 
 [project.scripts]
-run = "agent_harness.scripts.run:main"
+run = "jevtools.scripts.run:main"
+report = "jevtools.scripts.report:main"
