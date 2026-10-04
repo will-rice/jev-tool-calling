@@ -60,7 +60,14 @@ def test_format_date_gives_nothing_for_a_missing_or_impossible_date() -> None:
     [
         ("Austin", "TX", "United States", "city, state_abbr", "city", "Austin, TX"),
         ("Austin", "TX", "none", "city, state_name", "city", "Austin, Texas"),
-        ("Paris", "none", "France", "city, state_abbr", "city, country", "Paris, France"),
+        (
+            "Paris",
+            "none",
+            "France",
+            "city, state_abbr",
+            "city, country",
+            "Paris, France",
+        ),
         ("Paris", "none", "France", "city, state_abbr", "city", "Paris"),
         ("Paris", "none", "France", "city, country", "city, country", "Paris, France"),
         ("Austin", "TX", "United States", "city", "city", "Austin"),

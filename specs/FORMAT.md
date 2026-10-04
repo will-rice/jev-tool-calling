@@ -45,6 +45,7 @@ Every parameter of every function must have an entry.
 7. `"skip"` — dict / tuple / any, or an array of dicts or arrays. It will not be filled.
 
 Rules:
+
 - Work only from the function definitions. You have no example requests and must not invent any.
 - Be conservative with `"options"` when no enum exists: use it only if the description really does enumerate or
   fix the values. If unsure, use `"text"`.
