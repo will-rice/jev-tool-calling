@@ -29,4 +29,6 @@ WORD_PATTERN = (
     r"(?:\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d[\d.]*(?:[eE][-+]?\d+)?)"
     r"|\w+|[^\w\s]"
 )
+MAX_OPTIONS = 255
 RESULTS_DIR = Path("results")
+SPEC_DIR = Path("specs")

@@ -22,6 +22,7 @@ def test_load_runs_reads_every_split_of_each_run(
                 example=Example(
                     id=f"{split}_0", split=split, query="q", functions=(), gold=None
                 ),
+                method="words",
                 call=None,
                 tool_probabilities={},
                 choices={},
@@ -30,10 +31,10 @@ def test_load_runs_reads_every_split_of_each_run(
                 argument_input_tokens=0,
                 model="jev-1.13.0",
             )
-            results_path(split, run, None).write_text(
+            results_path(split, "words", run, None).write_text(
                 prediction.model_dump_json() + "\n"
             )
-    runs = load_runs("test")
+    runs = load_runs("test", "words")
     assert len(runs) == RUNS["test"]
     assert [p.example.id for p in runs[0]] == [
         "simple_0",

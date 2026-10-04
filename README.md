@@ -8,76 +8,82 @@ Zero-shot evaluation of [Jev](https://docs.typesafe.ai), TypeSafe AI's
 Jev does not generate text. It takes some state and a set of typed questions
 and returns typed answers with probabilities. A tool call needs a function
 name and argument values, and most BFCL arguments are open values such as
-numbers and names. This project asks how far a model that can only select
-gets when each word of the request is labelled with the argument it supplies.
+numbers, names, and dates. This project asks how far a model that can only
+select gets, first by labelling each word of the request with the argument
+it supplies, then with a per-function spec that lets code find and assemble
+the values the model chooses among.
 
 ## Results
 
 Model `jev-1.13.0`. Mean of three runs, with the range across runs in
-brackets.
+brackets. Call accuracy is BFCL's AST match.
 
-| Split         | Queries | Tool accuracy    | Argument accuracy | Call accuracy    | Ceiling |
-| ------------- | ------- | ---------------- | ----------------- | ---------------- | ------- |
-| `simple`      | 400     | 99.1 (99.0–99.2) | 83.2 (82.9–83.5)  | 66.3 (66.0–66.5) | 76.2    |
-| `multiple`    | 200     | 99.0 (99.0–99.0) | 85.3 (84.7–85.8)  | 70.2 (69.5–71.0) | 79.5    |
-| `irrelevance` | 240     |                  |                   | 90.4 (90.4–90.4) |         |
+| Split         | Queries | Word labelling   | With spec        |
+| ------------- | ------- | ---------------- | ---------------- |
+| `simple`      | 400     | 66.2 (66.0–66.5) | 74.9 (74.5–75.5) |
+| `multiple`    | 200     | 70.0 (69.0–71.0) | 76.8 (76.5–77.5) |
+| `irrelevance` | 240     | 90.4 (90.4–90.4) | 90.4 (90.4–90.4) |
 
-- **Call accuracy** is BFCL's AST match, the rule behind the leaderboard's
-  AST columns. On `irrelevance` it is the share of queries where Jev called
-  nothing.
-- **Tool accuracy** is the share of queries that picked the gold function.
-  On `simple` only one function is offered, so it is the share where Jev did
+The two methods differ only in how arguments are asked for. Picking the
+function is the same request in both.
+
+| Metric                           | Split      | Word labelling | With spec    |
+| -------------------------------- | ---------- | -------------- | ------------ |
+| Tool accuracy                    | `simple`   | 99.0           | 99.1         |
+|                                  | `multiple` | 98.8           | 99.0         |
+| Argument accuracy                | `simple`   | 83.1           | 89.2         |
+|                                  | `multiple` | 85.3           | 90.0         |
+| Input tokens per run, all splits |            | 2.93 million   | 2.44 million |
+
+- **Call accuracy**: the whole call is right. On `irrelevance` it is the
+  share of queries where Jev called nothing.
+- **Tool accuracy**: the share of queries that picked the gold function. On
+  `simple` only one function is offered, so it is the share where Jev did
   not abstain.
-- **Argument accuracy** is over arguments the gold answer requires, on
-  queries that picked the gold function. It is counted per argument, so it
-  can exceed the ceiling, which is counted per query.
-- **Ceiling** is the share of queries whose every required argument appears
-  in the request as written. The rest need a conversion Jev is not asked to
-  make.
+- **Argument accuracy**: over arguments the gold answer requires, on queries
+  that picked the gold function.
 
 What the numbers say:
 
 - **Picking the function is nearly solved.** Jev picks the gold function on
   99% of queries, whether one function is offered or up to four, and calls
   nothing on 90% of the queries no offered function fits.
-- **Jev is right about 95% of the time on every kind of argument it can
-  produce, and never on the rest.** Required arguments on queries that
-  picked the gold function, first run, `simple` and `multiple` together:
+- **Jev is about 95% right on any value it can select, and the spec widens
+  what it can select.** Required arguments on queries that picked the gold
+  function, first run, `simple` and `multiple` together:
 
-  | Argument                                    | Correct        | Accuracy |
-  | ------------------------------------------- | -------------- | -------- |
-  | Closed set: enum, boolean, array of an enum | 115 of 121     | 95.0     |
-  | Open value, in the request as written       | 1,084 of 1,134 | 95.6     |
-  | Open value, needs conversion                | 0 of 160       | 0        |
-  | Type that is never asked: dict, tuple, any  | 0 of 14        | 0        |
+  | Argument                                    | Count | Word labelling | With spec |
+  | ------------------------------------------- | ----- | -------------- | --------- |
+  | Closed set: enum, boolean, array of an enum | 121   | 95.0           | 92.6      |
+  | Open value, in the request as written       | 1,134 | 95.5           | 96.0      |
+  | Open value, needs conversion                | 160   | 0              | 47.5      |
+  | Type that is never asked: dict, tuple, any  | 14    | 0              | 0         |
 
-- **Call accuracy is those two groups multiplied across a call.** One
-  argument that needs conversion fails the query: `$1M` for `1000000`,
-  `50mH` for `0.05`, `x^2` for `x**2`, a date in another format. About a
-  quarter of `simple` queries and a fifth of `multiple` queries have one,
-  which is the ceiling. Of the queries within it, 87% come out entirely
-  right, and none outside it ever does.
-- **The misses within reach are mostly string boundaries**: `human cell` for
-  `human`, `company XYZ` for `XYZ`.
-- **How `none` is described matters most.** On a dev split, telling the
-  model that a word which names or introduces an argument is `none` lifted
-  call accuracy from 27.9% to 42.5% with the decoding held fixed. See
-  [What we tried](#what-we-tried).
-- **A dev gain did not transfer.** A second round of string decoding rules
-  lifted the dev split by 2.6 points and the test splits by nothing.
+- **Word labelling has a ceiling.** It can only copy. 76.2% of `simple`
+  queries and 79.5% of `multiple` queries have every required value in the
+  request as written; it gets 87% of those entirely right and none of the
+  others.
+- **The spec gets past it.** Of the 136 queries outside that ceiling, the
+  spec method gets 47 right (34.6%), by reading `$1M` as `1000000`, writing
+  "March 5, 2023" as `2023-03-05`, or choosing `vaporization` for "liquid to
+  steam". By the kind the spec gave each argument: dates go from 36% to
+  100%, numbers from 84% to 92%, options from 82% to 96%, places from 91%
+  to 98%.
+- **It is also cheaper.** A number or date no longer needs a question per
+  word, so input tokens fall by 17%.
+- **What is left needs reasoning.** Unit conversion (`50mH` to `0.05`),
+  arithmetic (`2 pi` to `6.2832`), inference ("from rest" to `0`), outside
+  knowledge (`Apple` to `AAPL`), and structured values.
 - **The range across runs is not a confidence interval.** It shows how much
   Jev's answers vary between identical requests, which is about a point.
 
-BFCL rewards rewriting a value, which a model that only selects cannot do,
-so these scores sit near the bottom of the
-[BFCL leaderboard](https://gorilla.cs.berkeley.edu/leaderboard.html) on
-`simple` and `multiple` (medians of 92% for both on the Python columns, as
-of its 2026-04-12 update) and in the top quarter on `irrelevance` (median
-84.6%). The leaderboard runs a later release of the dataset than the one
-pinned here.
-
-Input tokens per run of all three splits: 317,876 for the tool question and
-about 2,620,000 for the arguments.
+BFCL rewards rewriting a value, which a model that only selects cannot do
+alone. On the
+[BFCL leaderboard](https://gorilla.cs.berkeley.edu/leaderboard.html)'s
+Python columns (109 models, medians of 92% on both, as of its 2026-04-12
+update) the spec method would rank about 101st of 110 on `simple` and 96th
+on `multiple`, and 23rd on `irrelevance` (median 84.6%). The leaderboard
+runs a later release of the dataset than the one pinned here.
 
 ## Method
 
@@ -85,22 +91,50 @@ Each query gets two requests, both with the query as state.
 
 1. **Tool.** One `Choice` over the offered functions, each with its
    description, plus a described `none`. Choosing `none` is abstaining.
-2. **Arguments**, for the function Jev picked:
-   - **Open values** (strings, numbers, and arrays of them): one `Choice` per
-     word of the query over those parameters plus `none`. The instructions
-     are labelled fields: the function, the word, the words before it, the
-     words after it, and the question "Which argument of `function` does
-     `word` supply in `query`?". The `none` option says that a word which
-     only names or introduces an argument is `none`.
-   - **Enums**: one `Choice` over the enum's values.
-   - **Booleans**: one `Noul`.
-   - **Arrays of an enum**: one `Noul` per member.
-   - **Optional enums and booleans**: one more `Noul` asking whether the
-     query says anything about the argument. If not, it is left out and the
-     function's default applies.
+2. **Arguments**, for the function Jev picked, asked the way that function's
+   spec says. The gold function is never used, so picking the wrong function
+   costs the arguments too.
+
+### The spec
+
+A spec has one entry per parameter, following TypeSafe's
+[function calling](https://docs.typesafe.ai/cookbooks/function_calling.md),
+[pre-parsed value extraction](https://docs.typesafe.ai/cookbooks/pre_parsed_value_extraction_cookbook.md),
+and [date extraction](https://docs.typesafe.ai/cookbooks/date_extraction_cookbook.md)
+cookbooks. Each entry has a plain-language question, a question asking
+whether an optional argument is stated at all, and a kind:
+
+| Kind    | What Jev is asked                                        | What code does                                       |
+| ------- | -------------------------------------------------------- | ---------------------------------------------------- |
+| text    | For each word of the query, which argument it supplies   | Cuts the labelled words from the query               |
+| number  | Which of the numbers found in the query is this argument | Finds the numbers, reads `$1M`, `40%`, `three`       |
+| options | Which listed value, each with a line describing it       | Passes the value; an open list can fall back to text |
+| flag    | Yes or no                                                |                                                      |
+| set     | Yes or no, per member                                    | Collects the members                                 |
+| date    | Which month, which day, which year                       | Formats the date as the function wants               |
+| place   | Which words are the city; which US state; which country  | Joins them in the function's format                  |
+| skip    | Nothing                                                  | Leaves the argument out                              |
+
+**Word labelling** is the method with no authored spec. The spec is derived
+from the schema: strings, numbers, and arrays of them are text; enums are
+options with no lines; booleans are flags. So it only ever copies words.
+
+**With spec** uses a spec written by a language model from the function
+definitions alone (`specs/dev.json`, `specs/test.json`). It was given
+[`specs/FORMAT.md`](specs/FORMAT.md) and the schemas in batches and told to
+read nothing else: no queries, no gold answers, no results. Code then
+normalises it: a kind the parameter's type cannot take falls back to the
+schema's, a list of options with no enum behind it is made open, and a set
+with no enum behind it becomes text.
+
+### Labelling words
 
 Words are runs of letters, numbers, or single punctuation marks, so `A(3,4)`
-is six words and a value is never glued to the bracket beside it.
+is six words and a value is never glued to the bracket beside it. Each word
+question's instructions are labelled fields: the function, the word, the
+words before it, the words after it, and the question "Which argument of
+`function` does `word` supply in `query`?". The `none` option says that a
+word which only names or introduces an argument is `none`.
 
 A word's label counts when its probability is at least 0.7. Then:
 
@@ -111,15 +145,11 @@ A word's label counts when its probability is at least 0.7. Then:
   least 0.3 for the label, so a hyphen it was unsure of does not cut
   `my-bot-id` in two. If several runs carry the label, the one with the most
   probability behind it is used.
-- A **number** is the first labelled word that parses as one.
+- A **number** copied this way is the first labelled word that parses as one.
 - An **array** has one element per run (strings) or per word that parses
   (numbers).
 
-A value that does not parse is left out. Nothing is converted, so `$1M`,
-`50mH`, `11 PM`, and "three" are misses.
-
-The gold function is never used to choose which arguments to ask about, so
-picking the wrong function costs the arguments too.
+A value that does not parse is left out. Word labelling converts nothing.
 
 ### Dev and test
 
@@ -148,6 +178,12 @@ reported splits. What saw them, and what did not:
   the test splits, and then removed because it fixed as many test queries as
   it broke. Removing it used the test result; the scores are the same with
   and without it.
+- **The spec method.** The idea came from classifying the test splits'
+  out-of-reach arguments by what producing them would take, and the kinds a
+  spec can have were chosen from that classification. The spec files were
+  written without sight of any query or answer. The runtime was developed
+  on the dev split, where it scored 55.8 in a pilot, and the test splits
+  were then run once with it.
 
 ### Scoring
 
@@ -156,8 +192,8 @@ reported splits. What saw them, and what did not:
 present, every value among the gold answer's accepted values, and strings
 compared after removing case, spaces, and light punctuation. The package
 itself pins dozens of unrelated dependencies, so it is not a dependency. The
-port agrees with it on all 1,783 calls in the committed test runs that
-picked the gold function, and on 600 constructed calls of which 136 are
+port agrees with it on all 3,564 calls in the committed test runs, under
+both methods, that picked the gold function, and on 600 constructed calls of which 136 are
 wrong. How to repeat the check is in
 [docs/research/2026-10-04-scorer-parity.md](docs/research/2026-10-04-scorer-parity.md).
 
@@ -165,6 +201,12 @@ wrong. How to repeat the check is in
 
 - Arguments of type `dict`, `tuple`, or `any`, and arrays of dicts or arrays
   (37 of 3,375 parameters) are never asked.
+- The spec is only as good as its author's reading of each description. A
+  parameter wrongly made a closed set loses values outside it, which is why
+  closed-set accuracy is slightly lower with the spec (92.6 against 95.0).
+- Number candidates cover common written forms only. Units, arithmetic, and
+  inferred values are not attempted.
+- A place is completed with a US state or one of about 120 countries.
 - A scalar string takes one run of words carrying its label, and a scalar
   number the first such word that parses.
 - The ceiling ignores overlap between arguments, so it is an upper bound.
@@ -186,10 +228,15 @@ in
 | Adopted, plus a "which of these numbers" question per number        | 43.8          | 66.8              |
 | Adopted, unsure words bridged, strongest run (**current**)          | 45.9          | 67.6              |
 | Current, plus a question choosing among each run and its neighbours | 47.2          | 68.8              |
+| Current, each word shown the argument values assembled so far       | 45.9          | 67.6              |
+| Current, each word shown every earlier word's label                 | 42.9          | 64.4              |
+| Current, with the function's description in the state               | 46.4          | 68.0              |
+| **A spec per function** (pilot)                                     | 55.8          | 76.5              |
 
-The committed dev run of the current configuration scores 45.9 and 67.3;
-re-running a configuration moves call accuracy by about half a point. Only
-that run is kept, so the other rows cannot be rescored.
+"Current" is word labelling as committed. The committed dev runs score 45.1
+and 67.1 for word labelling and 57.1 and 77.2 with the spec; re-running a
+configuration moves call accuracy by about a point. Only those runs are
+kept, so the other rows cannot be rescored.
 
 The last row did not survive the test splits: offered a run with one more
 word, the model prefers the longer natural phrase (`C sharp major` for
@@ -209,36 +256,42 @@ Add your `TYPESAFE_API_KEY` to `.env`.
 
 ## Usage
 
-Run the three reported splits three times:
+Run the three reported splits three times with the authored spec:
 
 ```bash
-uv run run test
+uv run run test spec
+```
+
+Run them with word labelling only:
+
+```bash
+uv run run test words
 ```
 
 Run the dev split once:
 
 ```bash
-uv run run dev
+uv run run dev spec
 ```
 
 Score saved runs again without calling the API:
 
 ```bash
-uv run report test
+uv run report test spec
 ```
 
 Check the pipeline on the first 20 queries of each split:
 
 ```bash
-uv run run test --limit 20
+uv run run test spec --limit 20
 ```
 
 A limited run writes to its own files and leaves the full results in place.
 
 ## Output
 
-Each run is committed as `results/{split}-run{n}.jsonl`, one record per
-query: the query, the offered functions, the gold answer, the predicted call
+Each run is committed as `results/{split}-{method}-run{n}.jsonl`, one record
+per query: the query, the offered functions, the gold answer, the predicted call
 (or `null` if Jev abstained), the tool question's probabilities, every
 argument question's probabilities, and the input tokens of each request.
 Because every word's option probabilities are kept, a decoding rule can be
@@ -251,7 +304,7 @@ from pathlib import Path
 
 from jevtools.models import Prediction
 
-lines = Path("results/simple-run1.jsonl").read_text().splitlines()
+lines = Path("results/simple-spec-run1.jsonl").read_text().splitlines()
 predictions = [Prediction.model_validate_json(line) for line in lines]
 ```
 
@@ -262,12 +315,16 @@ src/jevtools/
 ├── config.py   # Constants: dataset, model, splits, word pattern, thresholds
 ├── models.py   # Parameter, Function, Example, Call, Prediction
 ├── data.py     # Load queries, functions, and gold calls
+├── spec.py     # Spec entries, the spec derived from a schema, loading
+├── values.py   # Find numbers; assemble dates and places; read words
 ├── jev.py      # Build questions, call Jev, decode answers into a call
 ├── metrics.py  # AST match, accuracies, ceiling
 └── scripts/
     ├── run.py     # Run a stage's splits
     └── report.py  # Score the saved runs
 ```
+
+`specs/` holds the authored specs and the format they were written to.
 
 ## Development
 

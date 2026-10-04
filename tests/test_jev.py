@@ -1,9 +1,11 @@
 """Tests for question building and answer decoding."""
 
 import pytest
+from pydantic import JsonValue
 from typesafe_sdk import Choice, Noul, SystemOneResponse, Usage
 
 from jevtools.jev import (
+    NO_NUMBER,
     argument_questions,
     coerce,
     decode_arguments,
@@ -13,6 +15,23 @@ from jevtools.jev import (
     word_spans,
 )
 from jevtools.models import Function, Parameter
+from jevtools.spec import FunctionSpec, ParameterSpec, default_spec
+
+
+def ask(query: str, function: Function) -> dict[str, Choice | Noul]:
+    """Build the questions the schema alone implies."""
+    return argument_questions(query, function, default_spec(function))
+
+
+def decode(
+    query: str,
+    function: Function,
+    choices: dict[str, dict[str, float]],
+    nouls: dict[str, float],
+) -> dict[str, JsonValue]:
+    """Decode answers to the questions the schema alone implies."""
+    return decode_arguments(query, function, default_spec(function), choices, nouls)
+
 
 AREA = Function(
     name="triangle.area",
@@ -68,7 +87,7 @@ def test_tool_question_rejects_a_function_named_none() -> None:
 
 def test_argument_questions_cover_each_kind_once() -> None:
     """Words are labelled; closed sets are asked directly; dicts are skipped."""
-    questions = argument_questions("base 10", AREA)
+    questions = ask("base 10", AREA)
     assert list(questions) == [
         "token_0",
         "token_1",
@@ -87,7 +106,7 @@ def test_argument_questions_cover_each_kind_once() -> None:
 
 def test_token_question_offers_open_parameters_and_a_described_none() -> None:
     """Only open-valued parameters compete for a word, with their descriptions."""
-    question = argument_questions("base 10", AREA)["token_1"]
+    question = ask("base 10", AREA)["token_1"]
     assert question.criteria == {
         "base": "The base.",
         "none": (
@@ -100,7 +119,7 @@ def test_token_question_offers_open_parameters_and_a_described_none() -> None:
 
 def test_token_question_identifies_a_word_by_the_words_around_it() -> None:
     """A repeated word is told apart by what comes before and after it."""
-    questions = argument_questions("10 by 10", AREA)
+    questions = ask("10 by 10", AREA)
     question = (
         "Which argument of `function` does `word` supply in `query`? "
         "Answer none if it supplies no argument."
@@ -123,7 +142,7 @@ def test_token_question_identifies_a_word_by_the_words_around_it() -> None:
 
 def test_choice_question_offers_exactly_the_enum_values() -> None:
     """Whatever the model picks is a value the function accepts."""
-    question = argument_questions("base 10", AREA)["choice.unit"]
+    question = ask("base 10", AREA)["choice.unit"]
     assert question.criteria == {"cm": None, "in": None}
     assert question.instructions == {
         "function": "triangle.area",
@@ -135,12 +154,12 @@ def test_choice_question_offers_exactly_the_enum_values() -> None:
 
 def test_required_closed_set_has_no_stated_question() -> None:
     """A required argument is always filled, so nothing asks if it is stated."""
-    assert "stated.round" not in argument_questions("base 10", AREA)
+    assert "stated.round" not in ask("base 10", AREA)
 
 
 def test_member_question_names_its_value() -> None:
     """Each member of a set is asked about separately."""
-    question = argument_questions("base 10", AREA)["member.tags.b"]
+    question = ask("base 10", AREA)["member.tags.b"]
     assert question.instructions == {
         "function": "triangle.area",
         "argument": "tags",
@@ -152,7 +171,7 @@ def test_member_question_names_its_value() -> None:
 
 def test_function_without_fillable_parameters_has_no_questions() -> None:
     """Nothing is asked, so the caller must skip the request."""
-    assert argument_questions("ping the service", PING) == {}
+    assert ask("ping the service", PING) == {}
 
 
 def test_function_without_open_parameters_has_no_token_questions() -> None:
@@ -164,7 +183,7 @@ def test_function_without_open_parameters_has_no_token_questions() -> None:
             Parameter(name="on", type="boolean", description="On.", required=True),
         ),
     )
-    assert list(argument_questions("turn it on", switch)) == ["flag.on"]
+    assert list(ask("turn it on", switch)) == ["flag.on"]
 
 
 def test_open_parameter_named_none_is_rejected() -> None:
@@ -177,7 +196,7 @@ def test_open_parameter_named_none_is_rejected() -> None:
         ),
     )
     with pytest.raises(ValueError, match="collides"):
-        argument_questions("a b", clash)
+        ask("a b", clash)
 
 
 ROUTE = Function(
@@ -280,7 +299,7 @@ def test_word_values_keep_array_elements_apart() -> None:
 def test_decode_fills_each_kind_of_argument() -> None:
     """Words, a choice, a flag, and a set decode into typed values."""
     choices = {**labels("none", "base"), "choice.unit": {"cm": 0.9, "in": 0.1}}
-    assert decode_arguments("base 10", AREA, choices, AREA_NOULS) == {
+    assert decode("base 10", AREA, choices, AREA_NOULS) == {
         "base": 10,
         "unit": "cm",
         "round": False,
@@ -292,26 +311,26 @@ def test_decode_omits_an_optional_argument_the_query_does_not_state() -> None:
     """An unstated optional argument is left to the function's default."""
     choices = {**labels("none", "base"), "choice.unit": {"cm": 0.9, "in": 0.1}}
     nouls = {**AREA_NOULS, "stated.unit": 0.1}
-    assert "unit" not in decode_arguments("base 10", AREA, choices, nouls)
+    assert "unit" not in decode("base 10", AREA, choices, nouls)
 
 
 def test_decode_omits_an_empty_set() -> None:
     """A set with no member answered yes is not passed as an empty list."""
     choices = {**labels("none", "base"), "choice.unit": {"cm": 0.9, "in": 0.1}}
     nouls = {**AREA_NOULS, "member.tags.a": 0.2}
-    assert "tags" not in decode_arguments("base 10", AREA, choices, nouls)
+    assert "tags" not in decode("base 10", AREA, choices, nouls)
 
 
 def test_decode_omits_a_number_that_does_not_parse() -> None:
     """A word that is not a number never reaches a numeric argument."""
     choices = {**labels("none", "base"), "choice.unit": {"cm": 0.9, "in": 0.1}}
-    assert "base" not in decode_arguments("base ten", AREA, choices, AREA_NOULS)
+    assert "base" not in decode("base ten", AREA, choices, AREA_NOULS)
 
 
 def test_decode_omits_a_number_written_with_separators() -> None:
     """Nothing is converted, so 1,000 is left out rather than read as 1."""
     choices = {**labels("base", "base"), "choice.unit": {"cm": 1.0}}
-    assert "base" not in decode_arguments("base 1,000", AREA, choices, AREA_NOULS)
+    assert "base" not in decode("base 1,000", AREA, choices, AREA_NOULS)
 
 
 def test_word_values_fill_a_gap_of_exactly_max_gap_words() -> None:
@@ -339,24 +358,20 @@ def test_word_values_count_a_label_at_exactly_the_threshold() -> None:
 def test_decode_uses_the_first_of_two_equally_strong_runs() -> None:
     """A scalar takes one value; a tie between runs goes to the earlier one."""
     choices = labels("city", "none", "none", "none", "city")
-    assert decode_arguments("Paris or maybe then Rome", ROUTE, choices, {}) == {
-        "city": "Paris"
-    }
+    assert decode("Paris or maybe then Rome", ROUTE, choices, {}) == {"city": "Paris"}
 
 
 def test_decode_builds_an_array_from_its_runs() -> None:
     """Each run of an array parameter is one element."""
     choices = labels("none", "none", "stops", "stops", "none", "stops")
     query = "stop at Santa Barbara and Monterey"
-    assert decode_arguments(query, ROUTE, choices, {}) == {
-        "stops": ["Santa Barbara", "Monterey"]
-    }
+    assert decode(query, ROUTE, choices, {}) == {"stops": ["Santa Barbara", "Monterey"]}
 
 
 def test_decode_omits_a_string_array_with_an_element_that_does_not_parse() -> None:
     """One unreadable element drops the whole array rather than shortening it."""
     choices = labels("none", "stops", "none", "stops")
-    assert decode_arguments("via Paris and ?", ROUTE, choices, {}) == {}
+    assert decode("via Paris and ?", ROUTE, choices, {}) == {}
 
 
 def test_decode_ignores_a_label_the_model_is_not_confident_in() -> None:
@@ -365,13 +380,13 @@ def test_decode_ignores_a_label_the_model_is_not_confident_in() -> None:
         "token_0": {"city": 0.6, "none": 0.4},
         "token_1": {"city": 0.95, "none": 0.05},
     }
-    assert decode_arguments("from Paris", ROUTE, choices, {}) == {"city": "Paris"}
+    assert decode("from Paris", ROUTE, choices, {}) == {"city": "Paris"}
 
 
 def test_decode_reads_a_number_past_the_word_that_names_it() -> None:
     """A number is read word by word, so a labelled cue word does not hide it."""
     choices = {**labels("base", "none", "base"), "choice.unit": {"cm": 1.0}}
-    arguments = decode_arguments("base of 10", AREA, choices, AREA_NOULS)
+    arguments = decode("base of 10", AREA, choices, AREA_NOULS)
     assert arguments["base"] == 10
 
 
@@ -391,14 +406,12 @@ def test_decode_builds_a_number_array_from_each_word_that_parses() -> None:
         ),
     )
     choices = labels("sizes", "sizes", "sizes", "none", "sizes")
-    assert decode_arguments("sizes 3 4 and 5", grid, choices, {}) == {
-        "sizes": [3, 4, 5]
-    }
+    assert decode("sizes 3 4 and 5", grid, choices, {}) == {"sizes": [3, 4, 5]}
 
 
 def test_decode_of_a_function_without_parameters_is_empty() -> None:
     """A function with nothing to fill decodes without any answers."""
-    assert decode_arguments("ping the service", PING, {}, {}) == {}
+    assert decode("ping the service", PING, {}, {}) == {}
 
 
 def test_input_tokens_raises_when_the_response_has_no_usage() -> None:
@@ -451,4 +464,138 @@ def test_decode_takes_the_strongest_run_of_a_scalar_string() -> None:
         "token_5": {"city": 0.9, "none": 0.1},
     }
     query = "Yosemite which is in Mariposa County"
-    assert decode_arguments(query, ROUTE, choices, {}) == {"city": "Mariposa County"}
+    assert decode(query, ROUTE, choices, {}) == {"city": "Mariposa County"}
+
+
+TRIP = Function(
+    name="trip",
+    description="Plan a trip.",
+    parameters=(
+        Parameter(name="budget", type="integer", description="Budget.", required=True),
+        Parameter(name="mode", type="string", description="Mode.", required=False),
+        Parameter(name="day", type="string", description="Day.", required=True),
+        Parameter(name="where", type="string", description="Where.", required=True),
+        Parameter(name="level", type="integer", description="Level.", required=True),
+    ),
+)
+TRIP_SPEC = FunctionSpec(
+    name="trip",
+    parameters={
+        "budget": ParameterSpec(kind="number", question="How much can be spent?"),
+        "mode": ParameterSpec(
+            kind="options",
+            question="How do they want to travel?",
+            stated="Does the request say how to travel?",
+            options={"transit": "bus, train, or other public transport", "car": None},
+            open=True,
+        ),
+        "day": ParameterSpec(kind="date", question="When?", format="%Y-%m-%d"),
+        "where": ParameterSpec(
+            kind="place",
+            question="Where to?",
+            place_format="city, state_abbr",
+            no_state="city, country",
+        ),
+        "level": ParameterSpec(
+            kind="options", question="Which tier?", options={"1": "basic", "2": "full"}
+        ),
+    },
+)
+QUERY = "Austin by bus on March 5 2023 for $1,500"
+
+
+def test_spec_questions_cover_each_kind() -> None:
+    """A number is picked, options and date parts chosen, a place completed."""
+    asked = argument_questions(QUERY, TRIP, TRIP_SPEC)
+    assert [name for name in asked if not name.startswith("token_")] == [
+        "number.budget",
+        "choice.mode",
+        "stated.mode",
+        "date.day.month",
+        "date.day.day",
+        "date.day.year",
+        "place.where.state",
+        "place.where.country",
+        "choice.level",
+    ]
+    assert set(asked["token_0"].criteria or {}) == {"mode", "where", "none"}
+
+
+def test_number_question_offers_the_numbers_code_found() -> None:
+    """The options are readings of the numbers in the query, plus none."""
+    question = argument_questions(QUERY, TRIP, TRIP_SPEC)["number.budget"]
+    assert question.criteria == {
+        "5": None,
+        "2023": None,
+        "1500": "written as 1,500",
+        "none": NO_NUMBER,
+    }
+    assert question.instructions == {
+        "function": "trip",
+        "argument": "budget",
+        "description": "Budget.",
+        "question": "How much can be spent?",
+    }
+
+
+def test_number_question_is_not_asked_without_a_candidate() -> None:
+    """With no number in the query there is nothing to pick."""
+    assert "number.budget" not in argument_questions("Austin by bus", TRIP, TRIP_SPEC)
+
+
+def test_open_options_add_an_escape_for_an_unlisted_value() -> None:
+    """An open list offers its values with their lines, and an other option."""
+    question = argument_questions(QUERY, TRIP, TRIP_SPEC)["choice.mode"]
+    assert question.criteria == {
+        "transit": "bus, train, or other public transport",
+        "car": None,
+        "other": "The request names a value that is not one of these.",
+    }
+
+
+def spec_answers(**changes: dict[str, float]) -> dict[str, dict[str, float]]:
+    """Build answers to the trip questions for the query, with overrides."""
+    words = ("where", "none", "mode", "none", "none", "none", "none", "none", "none")
+    answers = {
+        **{f"token_{index}": {label: 1.0} for index, label in enumerate(words)},
+        "token_9": {"none": 1.0},
+        "number.budget": {"1500": 0.9, "5": 0.1},
+        "choice.mode": {"transit": 0.8, "car": 0.1, "other": 0.1},
+        "date.day.month": {"March": 1.0},
+        "date.day.day": {"5": 1.0},
+        "date.day.year": {"2023": 1.0},
+        "place.where.state": {"TX": 0.9, "none": 0.1},
+        "place.where.country": {"United States": 1.0},
+        "choice.level": {"2": 0.7, "1": 0.3},
+    }
+    return {**answers, **changes}
+
+
+def test_spec_decoding_assembles_each_kind_of_value() -> None:
+    """Code builds the number, the date, the place, and typed option values."""
+    arguments = decode_arguments(
+        QUERY, TRIP, TRIP_SPEC, spec_answers(), {"stated.mode": 0.9}
+    )
+    assert arguments == {
+        "budget": 1500,
+        "mode": "transit",
+        "day": "2023-03-05",
+        "where": "Austin, TX",
+        "level": 2,
+    }
+
+
+def test_spec_decoding_copies_an_unlisted_option_from_the_query() -> None:
+    """Choosing other falls back to the words labelled with the argument."""
+    answers = spec_answers(**{"choice.mode": {"other": 0.9, "car": 0.1}})
+    arguments = decode_arguments(QUERY, TRIP, TRIP_SPEC, answers, {"stated.mode": 0.9})
+    assert arguments["mode"] == "bus"
+
+
+def test_spec_decoding_omits_what_the_query_does_not_give() -> None:
+    """No number picked, no year, and an unstated option are all left out."""
+    answers = spec_answers(
+        **{"number.budget": {"none": 1.0}, "date.day.year": {"none": 1.0}}
+    )
+    arguments = decode_arguments(QUERY, TRIP, TRIP_SPEC, answers, {"stated.mode": 0.2})
+    assert arguments == {"where": "Austin, TX", "level": 2}

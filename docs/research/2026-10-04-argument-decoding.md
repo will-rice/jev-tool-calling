@@ -159,6 +159,112 @@ it.
 The committed runs are of the code without the boundary question: 45.9 on
 dev, 66.3 on `simple`, and 70.2 on `multiple`.
 
+## Third round: more context for each word
+
+Two ways of giving a word's question more to go on, both on dev against the
+adopted configuration (45.9 call, 67.3 argument).
+
+### Autoregressive labelling
+
+Words were labelled in order, one request per word, and each question was
+shown the decisions already made for the earlier words.
+
+| What each question was shown                        | Call | Argument | Fixed | Broke |
+| --------------------------------------------------- | ---- | -------- | ----- | ----- |
+| Nothing (independent labelling)                     | 45.9 | 67.3     |       |       |
+| The argument values assembled so far                | 45.9 | 67.6     | 1     | 1     |
+| The earlier words that were given an argument       | 44.6 | 66.3     | 1     | 4     |
+| Every earlier word with its label, including `none` | 42.9 | 64.4     | 1     | 8     |
+
+Showing earlier decisions made the model give fewer words an argument: 907
+words under independent labelling, 873 with the values so far, 759 with the
+full history. The words lost had a median probability of about 0.78 before
+and 0.49 to 0.59 after, and the loss grew along the query (8%, 18%, and 21%
+of labelled words in its first, middle, and last third with the full
+history). It costs one request per word in sequence, about 20 round trips
+per query. Not adopted.
+
+### The function's description
+
+The word questions carry the picked function's name but not its description.
+
+| Variant                            | Call | Argument | Word-question tokens |
+| ---------------------------------- | ---- | -------- | -------------------- |
+| Control: same questions, run again | 45.5 | 67.3     | 1,277,103            |
+| Description in every word question | 45.5 | 67.8     | 1,423,357            |
+| Description once, in the state     | 46.4 | 68.0     | 1,286,549            |
+
+Against the control the first variant fixed 2 queries and broke 2, and the
+second fixed 5 and broke 3. The control differs from the committed run on
+one query. Functions with opaque names (`ChaFod`, `ThinQ_Connect`) did not
+benefit. Not adopted.
+
+## Fourth round: a spec per function
+
+Every experiment above selects words from the request, and none can pass
+the ceiling. The values out of reach were classified by what producing them
+would take (required arguments, `simple` and `multiple` together):
+
+| Out-of-reach argument                                   | Arguments |
+| ------------------------------------------------------- | --------- |
+| Number in a common written form (`$1M`, `40%`, `three`) | 56        |
+| String value listed in the parameter's description      | 22        |
+| Date or time in a set format                            | 14        |
+| Place completed with a state or country                 | 1         |
+| Number needing unit conversion, arithmetic, inference   | 34        |
+| Other string rewrite (`Apple` to `AAPL`)                | 25        |
+| Arrays, dicts, tuples                                   | 22        |
+
+The model knows more than it can say: asked which US state "a vegan
+restaurant in New York" is in, with the 50 states as options, it answers
+`NY` at probability 1.00. What it lacks is a way to produce a value that
+was not offered. TypeSafe's cookbooks supply that from code:
+
+- **Function calling.** A spec written from the signatures: a
+  plain-language question per argument, a described line per option, and a
+  question asking whether an optional argument is stated at all.
+- **Pre-parsed value extraction.** Code finds candidate values with a
+  pattern tuned to over-find, the model picks one per role, and code
+  normalises the pick.
+- **Date extraction.** The model chooses the month, day, and year; code
+  assembles the date.
+
+The spec here combines them. Each parameter is one of: text (labelled words,
+as before), number (found, picked, normalised), options (described lines,
+optionally open), flag, set, date (parts chosen, then formatted as the
+function wants), place (city from the request, state or country chosen), or
+skipped. `specs/FORMAT.md` is the instruction the spec was written from.
+
+### How the spec was written
+
+By a language model, from the function definitions alone. It was given the
+format and the schemas in batches of about 62 functions and told to read
+nothing else: no queries, no gold answers, no results. 131 dev functions
+and 988 test functions were written this way and then normalised in code:
+an authored kind the parameter's type cannot take falls back to the kind the
+schema implies, a list of options with no enum behind it is made open so an
+unlisted value can still be copied from the request, and a set with no enum
+behind it becomes text.
+
+### Dev pilot
+
+One run answered every question, so each kind could be switched on alone.
+
+| Configuration                        | Call | Argument |
+| ------------------------------------ | ---- | -------- |
+| Word labelling (committed run)       | 45.9 | 67.3     |
+| Control: word labelling, asked again | 44.6 | 66.8     |
+| Control plus dates                   | 51.5 | 71.9     |
+| Control plus places                  | 47.6 | 69.0     |
+| Control plus numbers                 | 45.1 | 67.3     |
+| Control plus options                 | 44.2 | 68.8     |
+| Everything                           | 55.8 | 76.5     |
+
+The pilot's runtime was a scratch script; the numbers reported in the README
+come from the committed code, which differs in one way: an open option's
+unlisted value is copied from the request by word labelling, where the pilot
+reused the earlier run's value.
+
 ## What is left
 
 With the adopted configuration, of dev's 233 queries 18 are lost to

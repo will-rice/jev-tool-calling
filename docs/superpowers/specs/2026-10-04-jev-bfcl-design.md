@@ -255,6 +255,27 @@ question and decoding described above.
   message, an enum of non-strings, or more than `MAX_WORDS = 95` words. The
   test splits have none; `live_simple` has 25.
 
+## Spec revision
+
+Added after the word-labelling results. Word labelling only copies values,
+so it cannot pass the ceiling. Arguments are now asked the way a
+per-function spec says, following TypeSafe's function calling, pre-parsed
+value extraction, and date extraction cookbooks. See the README's Method
+section and `docs/research/2026-10-04-argument-decoding.md`.
+
+- `spec.py` holds the spec entry (`text`, `number`, `options`, `flag`,
+  `set`, `date`, `place`, `skip`), a check that a spec fits its function,
+  and `default_spec`, which derives a spec from the schema alone.
+- `values.py` finds number candidates and assembles dates and places.
+- `run` and `report` take a second required argument, `words` or `spec`.
+  `words` uses `default_spec` and is the previous method unchanged: it
+  reproduces every previously saved call. `spec` uses `specs/{stage}.json`.
+- Results are saved as `results/{split}-{method}-run{n}.jsonl`.
+- The authored specs were written by a language model from function
+  definitions only, to `specs/FORMAT.md`, then normalised in code.
+- The ceiling metric is unchanged and still means "every required value is
+  in the request as written". The spec method can exceed it.
+
 ## Testing
 
 pytest, functional style, no mocks:

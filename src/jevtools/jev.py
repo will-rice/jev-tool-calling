@@ -1,7 +1,5 @@
 """Ask Jev which function to call and with which arguments, and decode its answers."""
 
-import re
-import string
 from collections.abc import Mapping, Sequence
 from itertools import groupby
 
@@ -16,9 +14,22 @@ from jevtools.config import (
     MODEL,
     NONE,
     THRESHOLD,
-    WORD_PATTERN,
 )
-from jevtools.models import Call, Example, Function, Parameter, Prediction
+from jevtools.models import Call, Example, Function, Method, Parameter, Prediction
+from jevtools.spec import FunctionSpec, ParameterSpec, check, default_spec
+from jevtools.values import (
+    COUNTRIES,
+    DAYS,
+    MONTHS,
+    STATES,
+    UNITED_STATES,
+    YEARS,
+    coerce,
+    complete_place,
+    format_date,
+    number_candidates,
+    word_spans,
+)
 
 NO_TOOL = "No offered function can answer the request."
 NO_ARGUMENT = (
@@ -26,20 +37,33 @@ NO_ARGUMENT = (
     "introduces an argument, such as a field name, a preposition, or "
     "punctuation around the value, is none."
 )
-NUMBER_EDGE = string.punctuation.replace("-", "").replace("+", "").replace(".", "")
-INTEGER = re.compile(r"[-+]?\d+")
-FLOAT = re.compile(r"[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?")
+NO_NUMBER = "None of these is the requested value, or the request does not give it."
+OTHER = "other"
+DATE_PARTS = {
+    "month": ("Which month is that date in?", MONTHS),
+    "day": ("Which day of the month is that date?", DAYS),
+    "year": ("Which year is that date in?", YEARS),
+}
 
 
-def predict(client: TypeSafeClient, example: Example) -> Prediction:
+def predict(
+    client: TypeSafeClient,
+    example: Example,
+    method: Method,
+    specs: Mapping[str, FunctionSpec],
+) -> Prediction:
     """Pick a function for the query, then fill its arguments.
 
-    Arguments are asked only for the function the model picked. A function
-    with nothing to ask is called with no arguments and no second request.
+    Arguments are asked only for the function the model picked, in the way
+    its spec says: the authored one under the spec method, or one derived
+    from the schema under the words method. A function with nothing to ask
+    is called with no arguments and no second request.
 
     Args:
         client: An open TypeSafe client.
         example: The query and the functions offered for it.
+        method: Whether arguments are asked from an authored spec.
+        specs: The authored specs by function key.
 
     Returns:
         The predicted call, or no call if the model abstained, with every
@@ -56,7 +80,8 @@ def predict(client: TypeSafeClient, example: Example) -> Prediction:
     argument_input_tokens = 0
     if tool.choice != NONE:
         function = next(f for f in example.functions if f.name == tool.choice)
-        questions = argument_questions(example.query, function)
+        spec = specs[function.key] if method == "spec" else default_spec(function)
+        questions = argument_questions(example.query, function, spec)
         if questions:
             response = client.system_one(state, questions, model=MODEL)
             choices = {
@@ -66,10 +91,11 @@ def predict(client: TypeSafeClient, example: Example) -> Prediction:
             argument_input_tokens = input_tokens(response)
         call = Call(
             name=function.name,
-            arguments=decode_arguments(example.query, function, choices, nouls),
+            arguments=decode_arguments(example.query, function, spec, choices, nouls),
         )
     return Prediction(
         example=example,
+        method=method,
         call=call,
         tool_probabilities=tool.probabilities,
         choices=choices,
@@ -98,33 +124,42 @@ def tool_question(functions: Sequence[Function]) -> Choice:
     )
 
 
-def argument_questions(query: str, function: Function) -> dict[str, Choice | Noul]:
+def argument_questions(
+    query: str, function: Function, spec: FunctionSpec
+) -> dict[str, Choice | Noul]:
     """Build every question needed to fill one function's arguments.
 
-    Open-valued parameters share one question per word of the query, asking
-    which of them the word supplies. The word and the words on either side
-    of it are labelled fields, which the model reads more reliably than a
-    marker inside a sentence. The none option is described: without that,
-    most words outside any value are given a parameter anyway. It also says
-    that a word naming or introducing an argument is none: without that, the
-    model labels "base" in "a base of 10" as well as "10".
+    Each parameter is asked the way its spec entry says:
 
-    A closed-set parameter is asked directly: a Choice over an enum, a Noul
-    for a boolean, a Noul per member of an enum array. An optional enum or
-    boolean also gets a Noul asking whether the query mentions it at all.
+    - text, and the city of a place: one question per word of the query,
+      shared by all such parameters, asking which of them the word supplies.
+      The word and the words on either side of it are labelled fields, and
+      the none option says that a word naming or introducing an argument is
+      none: without that, the model labels "base" in "a base of 10" too.
+    - number: one Choice over the numbers code found in the query.
+    - options: one Choice over the listed values, each with its line; an
+      open list adds an option for a value outside it, which is then copied
+      from the query like text.
+    - flag: one Noul. set: one Noul per member.
+    - date: one Choice each for the month, day, and year.
+    - place: one Choice each for the US state and the country.
+
+    An optional parameter whose entry has a stated question also gets a Noul
+    asking whether the query mentions it at all.
 
     Raises:
-        ValueError: If an open-valued parameter is named like the none option.
+        ValueError: If the spec does not fit the function, or a word-labelled
+            parameter is named like the none option.
     """
+    check(function, spec)
     questions: dict[str, Choice | Noul] = {}
-    open_parameters = {
+    labelled = {
         parameter.name: parameter.description
-        for parameter in function.parameters
-        if parameter.kind == "words"
+        for parameter in word_function(function, spec).parameters
     }
-    if NONE in open_parameters:
+    if NONE in labelled:
         raise ValueError(f"Parameter '{NONE}' collides with the none option")
-    if open_parameters:
+    if labelled:
         words = [query[start:end] for start, end in word_spans(query)]
         for index, word in enumerate(words):
             questions[f"token_{index}"] = Choice(
@@ -138,107 +173,244 @@ def argument_questions(query: str, function: Function) -> dict[str, Choice | Nou
                         f"`query`? Answer {NONE} if it supplies no argument."
                     ),
                 },
-                criteria={**open_parameters, NONE: NO_ARGUMENT},
+                criteria={**labelled, NONE: NO_ARGUMENT},
             )
     for parameter in function.parameters:
-        name = parameter.name
-        about = {
-            "function": function.name,
-            "argument": name,
-            "description": parameter.description,
-        }
-        match parameter.kind:
-            case "choice":
-                questions[f"choice.{name}"] = Choice(
-                    instructions={
-                        **about,
-                        "question": "Which value of `argument` does `query` ask for?",
-                    },
-                    criteria=dict.fromkeys(parameter.enum),
-                )
-            case "flag":
-                questions[f"flag.{name}"] = Noul(
-                    instructions={
-                        **about,
-                        "question": "Does `query` ask for `argument` to be true?",
-                    }
-                )
-            case "set":
-                for value in parameter.enum:
-                    questions[f"member.{name}.{value}"] = Noul(
-                        instructions={
-                            **about,
-                            "value": value,
-                            "question": "Does `query` ask for `value` in `argument`?",
-                        }
-                    )
-        if parameter.kind in ("choice", "flag") and not parameter.required:
-            questions[f"stated.{name}"] = Noul(
-                instructions={
-                    **about,
-                    "question": "Does `query` say anything about `argument`?",
-                }
-            )
+        entry = spec.parameters[parameter.name]
+        questions |= parameter_questions(query, function, parameter, entry)
     return questions
 
 
-def word_spans(query: str) -> list[tuple[int, int]]:
-    """Return each word's (start, end) character offsets in the query."""
-    return [match.span() for match in re.finditer(WORD_PATTERN, query)]
+def parameter_questions(
+    query: str, function: Function, parameter: Parameter, entry: ParameterSpec
+) -> dict[str, Choice | Noul]:
+    """Build the questions asked directly about one parameter."""
+    name = parameter.name
+    about = {
+        "function": function.name,
+        "argument": name,
+        "description": parameter.description,
+    }
+    asked = {**about, "question": entry.question}
+    questions: dict[str, Choice | Noul] = {}
+    match entry.kind:
+        case "number":
+            questions |= number_question(query, parameter, asked)
+        case "options":
+            other = {OTHER: "The request names a value that is not one of these."}
+            questions[f"choice.{name}"] = Choice(
+                instructions=asked,
+                criteria={**entry.options, **(other if entry.open else {})},
+            )
+        case "flag":
+            questions[f"flag.{name}"] = Noul(instructions=asked)
+        case "set":
+            questions |= {
+                f"member.{name}.{value}": Noul(
+                    instructions={
+                        **about,
+                        "value": value,
+                        **({} if line is None else {"meaning": line}),
+                        "question": entry.question,
+                    }
+                )
+                for value, line in entry.options.items()
+            }
+        case "date":
+            questions |= {
+                f"date.{name}.{part}": Choice(
+                    instructions={**asked, "part": question},
+                    criteria={
+                        **dict.fromkeys(options),
+                        NONE: f"The request does not give the {part}.",
+                    },
+                )
+                for part, (question, options) in DATE_PARTS.items()
+            }
+        case "place":
+            questions |= place_questions(name, about)
+    if entry.stated is not None and entry.kind in ("number", "options", "flag", "date"):
+        questions[f"stated.{name}"] = Noul(
+            instructions={**about, "question": entry.stated}
+        )
+    return questions
+
+
+def number_question(
+    query: str, parameter: Parameter, asked: Mapping[str, str | None]
+) -> dict[str, Choice | Noul]:
+    """Build the question that picks a number among those found in the query.
+
+    Nothing is asked when the query holds no number the parameter could take.
+    """
+    candidates = number_candidates(query, parameter.type)
+    if not candidates:
+        return {}
+    return {
+        f"number.{parameter.name}": Choice(
+            instructions=dict(asked),
+            criteria={
+                **{
+                    option: f"written as {source}" if source else None
+                    for option, source in candidates.items()
+                },
+                NONE: NO_NUMBER,
+            },
+        )
+    }
+
+
+def place_questions(
+    name: str, about: Mapping[str, str | None]
+) -> dict[str, Choice | Noul]:
+    """Build the questions that place a named city in a US state and a country."""
+    return {
+        f"place.{name}.state": Choice(
+            instructions={
+                **about,
+                "question": "Which US state is the place named for `argument` in?",
+            },
+            criteria={
+                **STATES,
+                NONE: "The place is not in a US state, or none is named.",
+            },
+        ),
+        f"place.{name}.country": Choice(
+            instructions={
+                **about,
+                "question": "Which country is the place named for `argument` in?",
+            },
+            criteria={
+                **dict.fromkeys([UNITED_STATES, *COUNTRIES]),
+                NONE: "No place is named.",
+            },
+        ),
+    }
+
+
+def word_function(function: Function, spec: FunctionSpec) -> Function:
+    """Return the function with only the parameters filled by labelling words.
+
+    Those are text, the city of a place, and a string with an open list of
+    options, whose unlisted values are copied from the query.
+    """
+    return function.model_copy(
+        update={
+            "parameters": tuple(
+                parameter
+                for parameter in function.parameters
+                if spec.parameters[parameter.name].kind in ("text", "place")
+                or (
+                    spec.parameters[parameter.name].kind == "options"
+                    and spec.parameters[parameter.name].open
+                    and parameter.type == "string"
+                )
+            )
+        }
+    )
 
 
 def decode_arguments(
     query: str,
     function: Function,
+    spec: FunctionSpec,
     choices: Mapping[str, Mapping[str, float]],
     nouls: Mapping[str, float],
 ) -> dict[str, JsonValue]:
     """Turn the argument answers into the function's arguments.
 
-    An argument is left out when its value does not parse, when an optional
-    closed-set argument is not stated, or when a set has no members.
-
-    A string takes its strongest run of labelled words, and a string array
-    one element per run, all of which must be readable. A number is read
-    word by word: it takes the first labelled word that parses, and a number
-    array every labelled word that parses.
+    An argument is left out when its value cannot be read or assembled,
+    when an optional argument is not stated, or when a set has no members.
 
     Args:
         query: The request text.
         function: The function being called.
+        spec: How each of its parameters was asked.
         choices: Each Choice question's option probabilities, by question name.
         nouls: Each Noul question's yes-probability, by question name.
     """
+    words = word_function(function, spec)
+    runs = word_runs(query, words, choices) if words.parameters else {}
     arguments: dict[str, JsonValue] = {}
-    runs = (
-        word_runs(query, function, choices)
-        if any(parameter.kind == "words" for parameter in function.parameters)
-        else {}
-    )
     for parameter in function.parameters:
         name = parameter.name
-        match parameter.kind:
-            case "words":
-                texts = open_texts(query, parameter, runs.get(name, []), choices)
-                value = open_value(parameter, texts)
-                if value is not None:
-                    arguments[name] = value
-            case "set":
-                members: list[JsonValue] = [
-                    value
-                    for value in parameter.enum
-                    if nouls[f"member.{name}.{value}"] >= THRESHOLD
-                ]
-                if members:
-                    arguments[name] = members
-            case "choice":
-                if parameter.required or nouls[f"stated.{name}"] >= THRESHOLD:
-                    options = choices[f"choice.{name}"]
-                    arguments[name] = max(options, key=lambda option: options[option])
-            case "flag":
-                if parameter.required or nouls[f"stated.{name}"] >= THRESHOLD:
-                    arguments[name] = nouls[f"flag.{name}"] >= THRESHOLD
+        entry = spec.parameters[name]
+        if f"stated.{name}" in nouls and nouls[f"stated.{name}"] < THRESHOLD:
+            continue
+        copied = open_value(
+            parameter, open_texts(query, parameter, runs.get(name, []), choices)
+        )
+        value = decode_value(parameter, entry, copied, choices, nouls)
+        if value is not None:
+            arguments[name] = value
     return arguments
+
+
+def decode_value(
+    parameter: Parameter,
+    entry: ParameterSpec,
+    copied: JsonValue,
+    choices: Mapping[str, Mapping[str, float]],
+    nouls: Mapping[str, float],
+) -> JsonValue:
+    """Read one argument's value from its answers, or None to omit it.
+
+    Args:
+        parameter: The parameter being filled.
+        entry: How it was asked.
+        copied: The value copied from the words labelled with it, if any.
+        choices: Each Choice question's option probabilities, by question name.
+        nouls: Each Noul question's yes-probability, by question name.
+    """
+    name = parameter.name
+
+    def chosen(question: str) -> str:
+        options = choices[question]
+        return max(options, key=lambda option: options[option])
+
+    read = {"integer": int, "float": float, "string": str}
+
+    match entry.kind:
+        case "text":
+            return copied
+        case "number":
+            number = chosen(f"number.{name}") if f"number.{name}" in choices else NONE
+            return None if number == NONE else read[parameter.type](number)
+        case "options":
+            option = chosen(f"choice.{name}")
+            return (
+                copied
+                if entry.open and option == OTHER
+                else read[parameter.type](option)
+            )
+        case "flag":
+            return nouls[f"flag.{name}"] >= THRESHOLD
+        case "set":
+            members: list[JsonValue] = [
+                value
+                for value in entry.options
+                if nouls[f"member.{name}.{value}"] >= THRESHOLD
+            ]
+            return members or None
+        case "date":
+            return format_date(
+                chosen(f"date.{name}.month"),
+                chosen(f"date.{name}.day"),
+                chosen(f"date.{name}.year"),
+                str(entry.format),
+            )
+        case "place":
+            if not isinstance(copied, str):
+                return None
+            return complete_place(
+                copied,
+                chosen(f"place.{name}.state"),
+                chosen(f"place.{name}.country"),
+                str(entry.place_format),
+                str(entry.no_state),
+            )
+        case _:
+            return None
 
 
 def open_value(parameter: Parameter, texts: Sequence[str]) -> JsonValue:
@@ -333,27 +505,6 @@ def word_runs(
             )
         position += length
     return runs
-
-
-def coerce(text: str, value_type: str | None) -> str | int | float | None:
-    """Read a value of the given type from query text, or None if it is not one.
-
-    Punctuation around the text is dropped. Nothing is converted: a number
-    word, a unit, or a thousands separator makes a number unreadable.
-
-    Raises:
-        ValueError: If the type is not a string or a number.
-    """
-    number = text.strip(NUMBER_EDGE).rstrip(".")
-    match value_type:
-        case "string":
-            return text.strip(string.punctuation) or None
-        case "integer":
-            return int(number) if INTEGER.fullmatch(number) else None
-        case "float":
-            return float(number) if FLOAT.fullmatch(number) else None
-        case _:
-            raise ValueError(f"Cannot read a {value_type} from words")
 
 
 def input_tokens(response: SystemOneResponse) -> int:

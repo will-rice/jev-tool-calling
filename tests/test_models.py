@@ -118,6 +118,7 @@ def test_prediction_survives_a_json_round_trip() -> None:
                 name="triangle.area", accepted={"base": [10], "unit": ["", "cm"]}
             ),
         ),
+        method="spec",
         call=Call(
             name="triangle.area", arguments={"base": 10, "ratio": 2.5, "on": True}
         ),
