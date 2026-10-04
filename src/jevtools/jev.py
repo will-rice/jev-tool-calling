@@ -9,7 +9,9 @@ from pydantic import JsonValue
 from typesafe_sdk import Choice, Noul, SystemOneResponse, TypeSafeClient
 
 from jevtools.config import (
+    BRIDGE_THRESHOLD,
     LABEL_THRESHOLD,
+    MAX_BRIDGE,
     MAX_GAP,
     MODEL,
     NONE,
@@ -34,6 +36,7 @@ def predict(client: TypeSafeClient, example: Example) -> Prediction:
 
     Arguments are asked only for the function the model picked. A function
     with nothing to ask is called with no arguments and no second request.
+    A third request refines the boundaries of any string value found.
 
     Args:
         client: An open TypeSafe client.
@@ -62,6 +65,14 @@ def predict(client: TypeSafeClient, example: Example) -> Prediction:
             }
             nouls = {name: answer.noul for name, answer in response.nouls.items()}
             argument_input_tokens = input_tokens(response)
+            refinements = refine_questions(example.query, function, choices)
+            if refinements:
+                refined = client.system_one(state, refinements, model=MODEL)
+                choices |= {
+                    name: answer.probabilities
+                    for name, answer in refined.choices.items()
+                }
+                argument_input_tokens += input_tokens(refined)
         call = Call(
             name=function.name,
             arguments=decode_arguments(example.query, function, choices, nouls),
@@ -196,8 +207,9 @@ def decode_arguments(
     An argument is left out when its value does not parse, when an optional
     closed-set argument is not stated, or when a set has no members.
 
-    A string takes its first run of labelled words, and a string array one
-    element per run, all of which must be readable. A number is read word
+    A string takes its refined value if one was asked for, or else its
+    strongest run of labelled words. A string array takes one element per
+    run, all of which must be readable. A number is read word
     by word: it takes the first labelled word that parses, and a number
     array every labelled word that parses.
 
@@ -208,8 +220,8 @@ def decode_arguments(
         nouls: Each Noul question's yes-probability, by question name.
     """
     arguments: dict[str, JsonValue] = {}
-    texts = (
-        word_values(query, function, choices)
+    runs = (
+        word_runs(query, function, choices)
         if any(parameter.kind == "words" for parameter in function.parameters)
         else {}
     )
@@ -217,7 +229,8 @@ def decode_arguments(
         name = parameter.name
         match parameter.kind:
             case "words":
-                value = open_value(parameter, texts.get(name, []))
+                texts = open_texts(query, parameter, runs.get(name, []), choices)
+                value = open_value(parameter, texts)
                 if value is not None:
                     arguments[name] = value
             case "set":
@@ -255,26 +268,108 @@ def open_value(parameter: Parameter, texts: Sequence[str]) -> JsonValue:
     return values if parameter.type == "array" else values[0]
 
 
-def word_values(
-    query: str, function: Function, choices: Mapping[str, Mapping[str, float]]
-) -> dict[str, list[str]]:
-    """Group labelled words into each open-valued parameter's value texts.
+def open_texts(
+    query: str,
+    parameter: Parameter,
+    runs: Sequence[tuple[int, int]],
+    choices: Mapping[str, Mapping[str, float]],
+) -> list[str]:
+    """Return the texts an open-valued parameter's value is read from.
 
-    A word's label is its most probable option, and counts only at
-    LABEL_THRESHOLD or above: the words that merely introduce a value are
-    the ones the model is unsure of.
-
-    For a string parameter, adjacent words with the same label are one
-    value, cut from the query as written. For a scalar string, up to MAX_GAP
-    unlabelled words between two words with its label take that label, so
-    small words inside a name stay in it. An array gets no filling, or its
-    elements would merge. For a number parameter every labelled word is its
-    own text, so a labelled word beside the number cannot spoil it.
+    A scalar string has one: the refine question's answer if it was asked,
+    or else the run with the most probability behind it, so a stray labelled
+    word elsewhere in the query does not win by coming first. Every other
+    parameter has one text per run, in query order.
     """
     spans = word_spans(query)
+    name = parameter.name
+    if parameter.type == "string" and f"refine.{name}" in choices:
+        options = choices[f"refine.{name}"]
+        return [max(options, key=lambda option: options[option])]
+    if parameter.type == "string" and runs:
+        runs = [
+            max(
+                runs,
+                key=lambda run: sum(
+                    choices[f"token_{index}"].get(name, 0.0)
+                    for index in range(run[0], run[1] + 1)
+                ),
+            )
+        ]
+    return [query[spans[first][0] : spans[last][1]] for first, last in runs]
+
+
+def refine_questions(
+    query: str, function: Function, choices: Mapping[str, Mapping[str, float]]
+) -> dict[str, Choice]:
+    """Build one question per scalar string asking for its exact value.
+
+    Word labels find where a value is but often take a word too many or too
+    few ("company XYZ" for "XYZ"). The options are each run of labelled
+    words, the run without its first or last word, and the run with one more
+    word on either side, read as strings. Nothing is asked when there is
+    only one option.
+    """
+    spans = word_spans(query)
+    runs = (
+        word_runs(query, function, choices)
+        if any(parameter.kind == "words" for parameter in function.parameters)
+        else {}
+    )
+    questions = {}
+    for parameter in function.parameters:
+        if parameter.kind != "words" or parameter.type != "string":
+            continue
+        candidates = [
+            coerce(query[spans[start][0] : spans[end][1]], "string")
+            for first, last in runs.get(parameter.name, [])
+            for start, end in (
+                (first, last),
+                (first + 1, last),
+                (first, last - 1),
+                (first - 1, last),
+                (first, last + 1),
+            )
+            if 0 <= start <= end < len(spans)
+        ]
+        criteria = dict.fromkeys(text for text in candidates if isinstance(text, str))
+        if len(criteria) > 1:
+            questions[f"refine.{parameter.name}"] = Choice(
+                instructions={
+                    "function": function.name,
+                    "argument": parameter.name,
+                    "description": parameter.description,
+                    "question": (
+                        "Which of these is the exact value of `argument` in "
+                        "`query`, with no extra words?"
+                    ),
+                },
+                criteria=criteria,
+            )
+    return questions
+
+
+def word_runs(
+    query: str, function: Function, choices: Mapping[str, Mapping[str, float]]
+) -> dict[str, list[tuple[int, int]]]:
+    """Group labelled words into each open-valued parameter's runs.
+
+    A run is the index of its first and last word. A word's label is its
+    most probable option, and counts only at LABEL_THRESHOLD or above: the
+    words that merely introduce a value are the ones the model is unsure of.
+
+    For a string parameter, adjacent words with the same label are one run.
+    For a scalar string, unlabelled words between two words with its label
+    join the run in two cases: up to MAX_GAP of them, so small words inside
+    a name stay in it; and up to MAX_BRIDGE of them if the model gave each
+    at least BRIDGE_THRESHOLD for the label, so a hyphen or comma it was
+    unsure of does not cut a value in two. An array gets neither, or its
+    elements would merge. For a number parameter every labelled word is its
+    own run, so a labelled word beside the number cannot spoil it.
+    """
+    answers = [choices[f"token_{index}"] for index in range(len(word_spans(query)))]
     labels = []
-    for index in range(len(spans)):
-        probabilities = choices[f"token_{index}"]
+    for probabilities in answers:
         label = max(probabilities, key=lambda option: probabilities[option])
         labels.append(label if probabilities[label] >= LABEL_THRESHOLD else NONE)
     strings = {p.name for p in function.parameters if p.value_type == "string"}
@@ -282,27 +377,27 @@ def word_values(
     for start, label in enumerate(labels):
         if label not in scalar_strings:
             continue
-        for end in range(start + 2, min(start + MAX_GAP + 2, len(labels))):
-            if labels[end] == label and all(
-                between == NONE for between in labels[start + 1 : end]
+        for end in range(start + 2, min(start + MAX_BRIDGE + 2, len(labels))):
+            gap = range(start + 1, end)
+            if labels[end] != label or any(labels[index] != NONE for index in gap):
+                continue
+            if len(gap) <= MAX_GAP or all(
+                answers[index].get(label, 0.0) >= BRIDGE_THRESHOLD for index in gap
             ):
-                labels[start + 1 : end] = [label] * (end - start - 1)
-                break
-    values: dict[str, list[str]] = {}
+                labels[start + 1 : end] = [label] * len(gap)
+            break
+    runs: dict[str, list[tuple[int, int]]] = {}
     position = 0
     for label, group in groupby(labels):
         length = len(list(group))
-        pieces = (
-            [(position, position + length - 1)]
-            if label in strings
-            else [(index, index) for index in range(position, position + length)]
-        )
         if label != NONE:
-            values.setdefault(label, []).extend(
-                query[spans[first][0] : spans[last][1]] for first, last in pieces
+            runs.setdefault(label, []).extend(
+                [(position, position + length - 1)]
+                if label in strings
+                else [(index, index) for index in range(position, position + length)]
             )
         position += length
-    return values
+    return runs
 
 
 def coerce(text: str, value_type: str | None) -> str | int | float | None:

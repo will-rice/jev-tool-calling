@@ -17,6 +17,8 @@ MAX_WORDS = 95
 MAX_GAP = 2
 THRESHOLD = 0.5
 LABEL_THRESHOLD = 0.7
+BRIDGE_THRESHOLD = 0.3
+MAX_BRIDGE = 6
 NONE = "none"
 # A word is a number, a run of letters, or one punctuation mark. A number
 # keeps its thousands separators, so "1,000" is one word that does not parse
