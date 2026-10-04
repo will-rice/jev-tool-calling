@@ -301,6 +301,34 @@ def test_decode_omits_a_number_that_does_not_parse() -> None:
     assert "base" not in decode_arguments("base ten", AREA, choices, AREA_NOULS)
 
 
+def test_decode_omits_a_number_written_with_separators() -> None:
+    """Nothing is converted, so 1,000 is left out rather than read as 1."""
+    choices = {**labels("base", "base"), "choice.unit": {"cm": 1.0}}
+    assert "base" not in decode_arguments("base 1,000", AREA, choices, AREA_NOULS)
+
+
+def test_word_values_fill_a_gap_of_exactly_max_gap_words() -> None:
+    """Two unlabelled words inside a name are filled; three are not."""
+    query = "see The Lord of the Rings"
+    filled = labels("none", "city", "city", "none", "none", "city")
+    assert word_values(query, ROUTE, filled) == {"city": ["The Lord of the Rings"]}
+
+
+def test_word_values_do_not_fill_a_gap_holding_another_label() -> None:
+    """A gap is filled only if every word in it is unlabelled."""
+    values = word_values("Paris 60 Rome", ROUTE, labels("city", "speed", "city"))
+    assert values == {"city": ["Paris", "Rome"], "speed": ["60"]}
+
+
+def test_word_values_count_a_label_at_exactly_the_threshold() -> None:
+    """A label at 0.7 counts and one just under does not."""
+    choices = {
+        "token_0": {"city": 0.69, "none": 0.31},
+        "token_1": {"city": 0.7, "none": 0.3},
+    }
+    assert word_values("to Paris", ROUTE, choices) == {"city": ["Paris"]}
+
+
 def test_decode_uses_the_first_run_of_a_scalar() -> None:
     """A scalar takes one value even if two separate runs carry its label."""
     choices = labels("city", "none", "none", "none", "city")

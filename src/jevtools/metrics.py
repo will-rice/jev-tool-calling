@@ -56,10 +56,8 @@ def argument_accuracy(predictions: Sequence[Prediction]) -> float:
         call = prediction.call
         if call is None or call.name != function.name:
             continue
-        parameters = {parameter.name: parameter for parameter in function.parameters}
         scored.extend(
-            name in call.arguments
-            and accepts(parameters[name], call.arguments[name], values)
+            name in call.arguments and accepts(call.arguments[name], values)
             for name, values in accepted.items()
             if "" not in values
         )
@@ -78,11 +76,10 @@ def matches(example: Example, call: Call | None) -> bool:
     function, accepted = example.target
     if call is None or call.name != function.name:
         return False
-    parameters = {parameter.name: parameter for parameter in function.parameters}
     if any(p.required and p.name not in call.arguments for p in function.parameters):
         return False
     if any(
-        name not in accepted or not accepts(parameters[name], value, accepted[name])
+        name not in accepted or not accepts(value, accepted[name])
         for name, value in call.arguments.items()
     ):
         return False
@@ -122,29 +119,24 @@ def expressible(
         if (value := coerce(query[start:end], parameter.value_type)) is not None
     ]
     if parameter.type != "array":
-        return any(accepts(parameter, value, accepted) for value in candidates)
-    item = parameter.model_copy(update={"type": parameter.value_type})
+        return any(accepts(value, accepted) for value in candidates)
     return any(
         isinstance(option, list)
         and len(option) > 0
         and all(
-            any(accepts(item, value, [element]) for value in candidates)
-            for element in option
+            any(accepts(value, [element]) for value in candidates) for element in option
         )
         for option in accepted
     )
 
 
-def accepts(
-    parameter: Parameter, value: JsonValue, accepted: Sequence[JsonValue]
-) -> bool:
-    """Decide whether a value is one of a parameter's accepted values.
+def accepts(value: JsonValue, accepted: Sequence[JsonValue]) -> bool:
+    """Decide whether a value is one of an argument's accepted values.
 
-    An integer for a float parameter is promoted, and strings are compared
-    after BFCL's standardisation.
+    Strings are compared after BFCL's standardisation. BFCL also promotes an
+    integer given for a float parameter; decoding always reads a float for
+    one, and Python compares the two as equal, so nothing is needed here.
     """
-    if parameter.type == "float" and type(value) is int:
-        value = float(value)
     return standardize(value) in [standardize(option) for option in accepted]
 
 

@@ -61,24 +61,15 @@ def predict(example: Example, call: Call | None) -> Prediction:
 
 def test_accepts_compares_strings_the_way_bfcl_does() -> None:
     """Case, spaces, and light punctuation do not matter."""
-    assert accepts(CITY, "new-york", ["New York"])
-    assert accepts(CITY, "nyc", ["New York", "NYC"])
-    assert not accepts(CITY, "Newark", ["New York"])
-
-
-def test_accepts_promotes_an_integer_for_a_float_parameter() -> None:
-    """BFCL lets an integer stand for a float."""
-    assert accepts(SPEED, 60, [60.0])
+    assert accepts("new-york", ["New York"])
+    assert accepts("nyc", ["New York", "NYC"])
+    assert not accepts("Newark", ["New York"])
 
 
 def test_accepts_compares_lists_in_order() -> None:
     """A list matches an accepted list element by element."""
-    assert accepts(
-        STOPS, ["santa barbara", "Monterey"], [["Santa Barbara", "Monterey"]]
-    )
-    assert not accepts(
-        STOPS, ["Monterey", "Santa Barbara"], [["Santa Barbara", "Monterey"]]
-    )
+    assert accepts(["santa barbara", "Monterey"], [["Santa Barbara", "Monterey"]])
+    assert not accepts(["Monterey", "Santa Barbara"], [["Santa Barbara", "Monterey"]])
 
 
 def test_matches_a_call_that_omits_an_omittable_argument() -> None:

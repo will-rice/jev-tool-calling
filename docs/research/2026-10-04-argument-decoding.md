@@ -20,12 +20,12 @@ with gaps of up to two words filled.
 
 Jev labelled the word that names an argument as well as its value:
 
-| Query fragment          | Words labelled       | Decoded text | Result      |
-| ----------------------- | -------------------- | ------------ | ----------- |
-| "a base of 10 units"    | `base`, `10`         | `base of 10` | not a number |
-| "a = 1, b = -3"         | `a`, `=`, `1`        | `a = 1`      | not a number |
-| "from 2020 Addison St…" | `from`, `2020`, …    | `from 2020…` | wrong string |
-| "version 'v2'"          | `version`, `v2`      | `version 'v2` | wrong string |
+| Query fragment          | Words labelled    | Decoded text  | Result       |
+| ----------------------- | ----------------- | ------------- | ------------ |
+| "a base of 10 units"    | `base`, `10`      | `base of 10`  | not a number |
+| "a = 1, b = -3"         | `a`, `=`, `1`     | `a = 1`       | not a number |
+| "from 2020 Addison St…" | `from`, `2020`, … | `from 2020…`  | wrong string |
+| "version 'v2'"          | `version`, `v2`   | `version 'v2` | wrong string |
 
 On dev this scored 24.5% call accuracy and 42.4% argument accuracy. Of the
 arguments that were missed but within reach, 91 were strings decoded to the
