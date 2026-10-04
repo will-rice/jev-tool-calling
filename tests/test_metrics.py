@@ -73,8 +73,12 @@ def test_accepts_promotes_an_integer_for_a_float_parameter() -> None:
 
 def test_accepts_compares_lists_in_order() -> None:
     """A list matches an accepted list element by element."""
-    assert accepts(STOPS, ["santa barbara", "Monterey"], [["Santa Barbara", "Monterey"]])
-    assert not accepts(STOPS, ["Monterey", "Santa Barbara"], [["Santa Barbara", "Monterey"]])
+    assert accepts(
+        STOPS, ["santa barbara", "Monterey"], [["Santa Barbara", "Monterey"]]
+    )
+    assert not accepts(
+        STOPS, ["Monterey", "Santa Barbara"], [["Santa Barbara", "Monterey"]]
+    )
 
 
 def test_matches_a_call_that_omits_an_omittable_argument() -> None:

@@ -210,16 +210,29 @@ API calls. Where these differ from the sections above, these apply.
   prefix.** On `simple` the gold function is the one offered function, which
   is what BFCL's checker does.
 
-## Open questions for the API probe
+## Probe results
 
-To be answered by sending about 20 queries as the plan's first task, and
-recorded here:
+21 queries were sent to `jev-latest` before the full run: the first 8 of
+`simple` plus its longest query, the first 6 of `multiple`, and the first 6
+of `irrelevance`. The API returned model `jev-1.13.0`.
 
-- Input tokens per request, and whether the longest query (48
-  whitespace-separated words, 6 parameters) fits in one argument request.
-- Whether a described `none` in the tool question abstains on `irrelevance`
-  without costing accuracy on `simple`, where the only offered function is
-  always right.
+- **Size.** No request was rejected. The tool request used 387 input tokens
+  on average. The word request used 5,465 on average with punctuation split
+  off and 3,807 with whitespace words. The longest query (`simple_337`, 95
+  words once split, 48 by whitespace) used 24,381 and 11,302.
+- **Abstention.** With a described `none`, 0 of 9 `simple` queries abstained
+  and 6 of 6 `irrelevance` queries did.
+- **Projected cost.** About 10.8 million input tokens for three runs of all
+  three splits.
+- **Splitting helps where the ceiling said it would.** For `A(3,4) and
+B(1,2)`, whitespace words give `pointA` the single word `A(3,4)`; split
+  words label `3` and `4` separately. For `inches?`, whitespace keeps the
+  question mark on the word.
+- **Jev also labels the word that names an argument.** In "a base of 10
+  units and height of 5 units" it labels `base` and `10` as `base`, and
+  `height` and `5` as `height`. Decoding as specified then fills the gap,
+  reads `base of 10`, fails to parse a number, and omits the argument. This
+  was not seen on SNIPS, where slot names rarely appear in the utterance.
 
 ## Testing
 

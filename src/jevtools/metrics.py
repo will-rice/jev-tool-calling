@@ -35,8 +35,7 @@ def evaluate(predictions: Sequence[Prediction]) -> dict[str, float]:
         if split == "irrelevance":
             continue
         metrics[f"{split}/tool_accuracy"] = fmean(
-            p.call is not None and p.call.name == p.example.target[0].name
-            for p in rows
+            p.call is not None and p.call.name == p.example.target[0].name for p in rows
         )
         metrics[f"{split}/argument_accuracy"] = argument_accuracy(rows)
         metrics[f"{split}/ceiling"] = fmean(reachable(p.example) for p in rows)
