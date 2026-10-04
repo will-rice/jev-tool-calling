@@ -39,3 +39,7 @@ convention = "google"
 [project.scripts]
 run = "jevtools.scripts.run:main"
 report = "jevtools.scripts.report:main"
+
+# bfcl/ runs inside BFCL's own environment, where bfcl-eval is installed.
+[tool.ty.src]
+exclude = ["bfcl"]

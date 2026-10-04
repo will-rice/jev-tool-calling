@@ -212,6 +212,11 @@ def select_calls(
     called more than once only when the chance of one call falls below
     ONE_CALL_THRESHOLD.
 
+    The tool question asks for one function, so it answers none when a
+    request needs two. Abstaining therefore stands only if several
+    functions are not confidently needed, or fewer than two are each judged
+    needed.
+
     Returns:
         Each selected function with its number of calls, in the order
         offered. Empty if the model abstained.
@@ -226,15 +231,14 @@ def select_calls(
         return int(top({k: v for k, v in options.items() if k != "1"}))
 
     tool = top(choices["tool"])
-    if tool == NONE:
-        return []
     picked = [index for index, f in enumerate(functions) if f.name == tool]
     if "distinct" in choices:
         wanted = more_than_one(choices["distinct"], ONE_FUNCTION_THRESHOLD)
-        if wanted > 1:
-            ranked = sorted(
-                range(len(functions)), key=lambda index: -nouls[f"needed.{index}"]
-            )
+        ranked = sorted(
+            range(len(functions)), key=lambda index: -nouls[f"needed.{index}"]
+        )
+        needed = [index for index in ranked if nouls[f"needed.{index}"] >= THRESHOLD]
+        if wanted > 1 and (tool != NONE or len(needed) > 1):
             picked = sorted(ranked[:wanted])
     return [
         (

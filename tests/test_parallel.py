@@ -84,6 +84,20 @@ def test_select_calls_adds_functions_only_when_confident_several_are_needed() ->
     assert select_calls((PLAY, STOP), two, nouls) == [(PLAY, 1), (STOP, 1)]
 
 
+def test_select_calls_does_not_abstain_when_several_functions_are_needed() -> None:
+    """No single function answers a request for two, so none is not the last word."""
+    answers = {
+        "tool": {"none": 0.7, "play": 0.2, "stop": 0.1},
+        "distinct": {"1": 0.0, "2": 1.0},
+        "count.0": {"1": 1.0},
+        "count.1": {"1": 1.0},
+    }
+    both = {"needed.0": 0.6, "needed.1": 0.9}
+    only_one = {"needed.0": 0.2, "needed.1": 0.9}
+    assert select_calls((PLAY, STOP), answers, both) == [(PLAY, 1), (STOP, 1)]
+    assert select_calls((PLAY, STOP), answers, only_one) == []
+
+
 def test_number_readings_give_each_way_one_number_can_be_read() -> None:
     """A percentage is offered as written and as a fraction."""
     query = "win 30% of 1,200 rounds"
@@ -143,7 +157,7 @@ def test_decode_parallel_shares_a_value_repeated_identically() -> None:
 
 
 def test_decode_parallel_splits_an_array_into_one_per_call() -> None:
-    """Elements joined by commas or "and" stay together; a longer gap starts a new array."""
+    """Elements joined by commas stay together; a longer gap starts a new array."""
     query = "ABBA tracks 1, 2 and 3 then Queen tracks 7, 8"
     choices = labels(
         "artist", "none", "tracks", "none", "tracks", "none", "tracks",
