@@ -198,9 +198,9 @@ def decode_arguments(
     An argument is left out when its value does not parse, when an optional
     closed-set argument is not stated, or when a set has no members.
 
-    A string takes its strongest run of labelled words. A string array takes one element per
-    run, all of which must be readable. A number is read word
-    by word: it takes the first labelled word that parses, and a number
+    A string takes its strongest run of labelled words, and a string array
+    one element per run, all of which must be readable. A number is read
+    word by word: it takes the first labelled word that parses, and a number
     array every labelled word that parses.
 
     Args:

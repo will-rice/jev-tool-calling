@@ -18,8 +18,8 @@ brackets.
 
 | Split         | Queries | Tool accuracy    | Argument accuracy | Call accuracy    | Ceiling |
 | ------------- | ------- | ---------------- | ----------------- | ---------------- | ------- |
-| `simple`      | 400     | 99.0 (99.0–99.0) | 83.5 (83.4–83.5)  | 66.8 (66.8–66.8) | 76.2    |
-| `multiple`    | 200     | 99.0 (99.0–99.0) | 85.1 (84.9–85.4)  | 69.8 (69.0–70.5) | 79.5    |
+| `simple`      | 400     | 99.1 (99.0–99.2) | 83.2 (82.9–83.5)  | 66.3 (66.0–66.5) | 76.2    |
+| `multiple`    | 200     | 99.0 (99.0–99.0) | 85.3 (84.7–85.8)  | 70.2 (69.5–71.0) | 79.5    |
 | `irrelevance` | 240     |                  |                   | 90.4 (90.4–90.4) |         |
 
 - **Call accuracy** is BFCL's AST match, the rule behind the leaderboard's
@@ -40,27 +40,44 @@ What the numbers say:
 - **Picking the function is nearly solved.** Jev picks the gold function on
   99% of queries, whether one function is offered or up to four, and calls
   nothing on 90% of the queries no offered function fits.
-- **Where the value is in the request, labelling words finds it.** Of the
-  queries within reach, 88% come out entirely right (87.5% on `simple`,
-  88.1% on `multiple`, first run). No query outside the ceiling is ever
-  right.
-- **The ceiling is the larger loss.** About a quarter of `simple` queries and
-  a fifth of `multiple` queries need a value that is not in the request as
-  written: `$1M` for `1000000`, `50mH` for `0.05`, `x^2` for `x**2`, or a date
-  in another format. On `simple` (first run, queries that picked the gold
-  function) 158 required arguments are missed: 113 are not in the request
-  as written and 10 are of a type that is never asked, such as a dict.
-- **The remaining misses are mostly strings.** 24 of the other 35 are
-  strings decoded to text the gold answer does not accept.
+- **Jev is right about 95% of the time on every kind of argument it can
+  produce, and never on the rest.** Required arguments on queries that
+  picked the gold function, first run, `simple` and `multiple` together:
+
+  | Argument                                    | Correct        | Accuracy |
+  | ------------------------------------------- | -------------- | -------- |
+  | Closed set: enum, boolean, array of an enum | 115 of 121     | 95.0     |
+  | Open value, in the request as written       | 1,084 of 1,134 | 95.6     |
+  | Open value, needs conversion                | 0 of 160       | 0        |
+  | Type that is never asked: dict, tuple, any  | 0 of 14        | 0        |
+
+- **Call accuracy is those two groups multiplied across a call.** One
+  argument that needs conversion fails the query: `$1M` for `1000000`,
+  `50mH` for `0.05`, `x^2` for `x**2`, a date in another format. About a
+  quarter of `simple` queries and a fifth of `multiple` queries have one,
+  which is the ceiling. Of the queries within it, 87% come out entirely
+  right, and none outside it ever does.
+- **The misses within reach are mostly string boundaries**: `human cell` for
+  `human`, `company XYZ` for `XYZ`.
 - **How `none` is described matters most.** On a dev split, telling the
   model that a word which names or introduces an argument is `none` lifted
   call accuracy from 27.9% to 42.5% with the decoding held fixed. See
   [What we tried](#what-we-tried).
+- **A dev gain did not transfer.** A second round of string decoding rules
+  lifted the dev split by 2.6 points and the test splits by nothing.
 - **The range across runs is not a confidence interval.** It shows how much
-  Jev's answers vary between identical requests, which is under a point.
+  Jev's answers vary between identical requests, which is about a point.
+
+BFCL rewards rewriting a value, which a model that only selects cannot do,
+so these scores sit near the bottom of the
+[BFCL leaderboard](https://gorilla.cs.berkeley.edu/leaderboard.html) on
+`simple` and `multiple` (medians of 92% for both on the Python columns, as
+of its 2026-04-12 update) and in the top quarter on `irrelevance` (median
+84.6%). The leaderboard runs a later release of the dataset than the one
+pinned here.
 
 Input tokens per run of all three splits: 317,876 for the tool question and
-2,618,254 for the arguments.
+about 2,620,000 for the arguments.
 
 ## Method
 
@@ -87,10 +104,13 @@ is six words and a value is never glued to the bracket beside it.
 
 A word's label counts when its probability is at least 0.7. Then:
 
-- A **string** is the first run of adjacent words with its label, cut from
-  the query as written, with surrounding punctuation removed. Up to two
-  unlabelled words between two labelled ones join the run, so the small
-  words inside a name stay in it.
+- A **string** is a run of adjacent words with its label, cut from the query
+  as written, with surrounding punctuation removed. Unlabelled words between
+  two labelled ones join the run if there are at most two, so the small
+  words inside a name stay in it, or at most six that the model gave at
+  least 0.3 for the label, so a hyphen it was unsure of does not cut
+  `my-bot-id` in two. If several runs carry the label, the one with the most
+  probability behind it is used.
 - A **number** is the first labelled word that parses as one.
 - An **array** has one element per run (strings) or per word that parses
   (numbers).
@@ -121,7 +141,13 @@ reported splits. What saw them, and what did not:
 - **Fixed after a first full test run.** A code review of that run found
   that `1,000` was read as `1` and `5-10` as `5` and `-10`. The word pattern
   was corrected and every split run again; the first run scored 66.5, 69.8,
-  and 90.4, and the reported one 66.8, 69.8, and 90.4.
+  and 90.4, and the second 66.8, 69.8, and 90.4.
+- **A second round on the dev split.** Bridging unsure words and taking the
+  strongest run were chosen on dev and are in the reported run, which scores
+  66.3, 70.2, and 90.4. A boundary question was also chosen on dev, run on
+  the test splits, and then removed because it fixed as many test queries as
+  it broke. Removing it used the test result; the scores are the same with
+  and without it.
 
 ### Scoring
 
@@ -130,7 +156,7 @@ reported splits. What saw them, and what did not:
 present, every value among the gold answer's accepted values, and strings
 compared after removing case, spaces, and light punctuation. The package
 itself pins dozens of unrelated dependencies, so it is not a dependency. The
-port agrees with it on all 1,782 calls in the committed test runs that
+port agrees with it on all 1,783 calls in the committed test runs that
 picked the gold function, and on 600 constructed calls of which 136 are
 wrong. How to repeat the check is in
 [docs/research/2026-10-04-scorer-parity.md](docs/research/2026-10-04-scorer-parity.md).
@@ -139,7 +165,8 @@ wrong. How to repeat the check is in
 
 - Arguments of type `dict`, `tuple`, or `any`, and arrays of dicts or arrays
   (37 of 3,375 parameters) are never asked.
-- A scalar argument takes the first run or word carrying its label.
+- A scalar string takes one run of words carrying its label, and a scalar
+  number the first such word that parses.
 - The ceiling ignores overlap between arguments, so it is an upper bound.
 - Parallel, multi-turn, live, and non-Python BFCL splits are not evaluated.
 
@@ -149,18 +176,24 @@ Measured on the dev split, one run each. Its ceiling is 54.9%. Details are
 in
 [docs/research/2026-10-04-argument-decoding.md](docs/research/2026-10-04-argument-decoding.md).
 
-| Change                                                             | Call accuracy | Argument accuracy |
-| ------------------------------------------------------------------ | ------------- | ----------------- |
-| First version: plain `none`, adjacent labelled words merged        | 24.5          | 42.4              |
-| Numbers read word by word                                          | 27.9          | 49.6              |
-| The same, labels below 0.9 probability ignored                     | 41.6          | 61.7              |
-| `none` reworded, numbers word by word, no threshold                | 42.5          | 64.6              |
-| `none` reworded, numbers word by word, threshold 0.7 (**adopted**) | 43.8          | 66.3              |
-| Adopted, plus a "which of these numbers" question per number       | 43.8          | 66.8              |
+| Change                                                              | Call accuracy | Argument accuracy |
+| ------------------------------------------------------------------- | ------------- | ----------------- |
+| First version: plain `none`, adjacent labelled words merged         | 24.5          | 42.4              |
+| Numbers read word by word                                           | 27.9          | 49.6              |
+| The same, labels below 0.9 probability ignored                      | 41.6          | 61.7              |
+| `none` reworded, numbers word by word, no threshold                 | 42.5          | 64.6              |
+| `none` reworded, numbers word by word, threshold 0.7 (**adopted**)  | 43.8          | 66.3              |
+| Adopted, plus a "which of these numbers" question per number        | 43.8          | 66.8              |
+| Adopted, unsure words bridged, strongest run (**current**)          | 45.9          | 67.6              |
+| Current, plus a question choosing among each run and its neighbours | 47.2          | 68.8              |
 
-The committed dev run of the adopted configuration scores 43.3 and 66.1;
+The committed dev run of the current configuration scores 45.9 and 67.3;
 re-running a configuration moves call accuracy by about half a point. Only
 that run is kept, so the other rows cannot be rescored.
+
+The last row did not survive the test splits: offered a run with one more
+word, the model prefers the longer natural phrase (`C sharp major` for
+`C sharp`), and it broke as many test queries as it fixed.
 
 ## Setup
 
