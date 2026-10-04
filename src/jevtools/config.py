@@ -16,6 +16,7 @@ RUNS: dict[Stage, int] = {"dev": 1, "test": 3}
 MAX_WORDS = 95
 MAX_GAP = 2
 THRESHOLD = 0.5
+LABEL_THRESHOLD = 0.7
 NONE = "none"
 WORD_PATTERN = r"[-+]?\d[\d.]*(?:[eE][-+]?\d+)?|\w+|[^\w\s]"
 RESULTS_DIR = Path("results")

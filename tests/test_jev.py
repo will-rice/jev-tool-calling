@@ -90,7 +90,11 @@ def test_token_question_offers_open_parameters_and_a_described_none() -> None:
     question = argument_questions("base 10", AREA)["token_1"]
     assert question.criteria == {
         "base": "The base.",
-        "none": "The word is not part of any argument's value.",
+        "none": (
+            "The word is not part of any argument's value. A word that only "
+            "names or introduces an argument, such as a field name, a "
+            "preposition, or punctuation around the value, is none."
+        ),
     }
 
 
@@ -199,9 +203,9 @@ AREA_NOULS = {
 }
 
 
-def labels(*names: str) -> dict[str, str]:
-    """Build the token answers for a query, one label per word."""
-    return {f"token_{index}": name for index, name in enumerate(names)}
+def labels(*names: str) -> dict[str, dict[str, float]]:
+    """Build certain token answers for a query, one label per word."""
+    return {f"token_{index}": {name: 1.0} for index, name in enumerate(names)}
 
 
 @pytest.mark.parametrize(
@@ -268,7 +272,7 @@ def test_word_values_keep_array_elements_apart() -> None:
 
 def test_decode_fills_each_kind_of_argument() -> None:
     """Words, a choice, a flag, and a set decode into typed values."""
-    choices = {**labels("none", "base"), "choice.unit": "cm"}
+    choices = {**labels("none", "base"), "choice.unit": {"cm": 0.9, "in": 0.1}}
     assert decode_arguments("base 10", AREA, choices, AREA_NOULS) == {
         "base": 10,
         "unit": "cm",
@@ -279,21 +283,21 @@ def test_decode_fills_each_kind_of_argument() -> None:
 
 def test_decode_omits_an_optional_argument_the_query_does_not_state() -> None:
     """An unstated optional argument is left to the function's default."""
-    choices = {**labels("none", "base"), "choice.unit": "cm"}
+    choices = {**labels("none", "base"), "choice.unit": {"cm": 0.9, "in": 0.1}}
     nouls = {**AREA_NOULS, "stated.unit": 0.1}
     assert "unit" not in decode_arguments("base 10", AREA, choices, nouls)
 
 
 def test_decode_omits_an_empty_set() -> None:
     """A set with no member answered yes is not passed as an empty list."""
-    choices = {**labels("none", "base"), "choice.unit": "cm"}
+    choices = {**labels("none", "base"), "choice.unit": {"cm": 0.9, "in": 0.1}}
     nouls = {**AREA_NOULS, "member.tags.a": 0.2}
     assert "tags" not in decode_arguments("base 10", AREA, choices, nouls)
 
 
 def test_decode_omits_a_number_that_does_not_parse() -> None:
     """A word that is not a number never reaches a numeric argument."""
-    choices = {**labels("none", "base"), "choice.unit": "cm"}
+    choices = {**labels("none", "base"), "choice.unit": {"cm": 0.9, "in": 0.1}}
     assert "base" not in decode_arguments("base ten", AREA, choices, AREA_NOULS)
 
 
@@ -314,8 +318,30 @@ def test_decode_builds_an_array_from_its_runs() -> None:
     }
 
 
-def test_decode_omits_an_array_with_an_element_that_does_not_parse() -> None:
-    """One bad element drops the whole array rather than shortening it."""
+def test_decode_omits_a_string_array_with_an_element_that_does_not_parse() -> None:
+    """One unreadable element drops the whole array rather than shortening it."""
+    choices = labels("none", "stops", "none", "stops")
+    assert decode_arguments("via Paris and ?", ROUTE, choices, {}) == {}
+
+
+def test_decode_ignores_a_label_the_model_is_not_confident_in() -> None:
+    """A word labelled below the threshold is treated as no argument."""
+    choices = {
+        "token_0": {"city": 0.6, "none": 0.4},
+        "token_1": {"city": 0.95, "none": 0.05},
+    }
+    assert decode_arguments("from Paris", ROUTE, choices, {}) == {"city": "Paris"}
+
+
+def test_decode_reads_a_number_past_the_word_that_names_it() -> None:
+    """A number is read word by word, so a labelled cue word does not hide it."""
+    choices = {**labels("base", "none", "base"), "choice.unit": {"cm": 1.0}}
+    arguments = decode_arguments("base of 10", AREA, choices, AREA_NOULS)
+    assert arguments["base"] == 10
+
+
+def test_decode_builds_a_number_array_from_each_word_that_parses() -> None:
+    """Every labelled word that reads as a number is one element."""
     grid = Function(
         name="grid",
         description="Grid.",
@@ -329,8 +355,10 @@ def test_decode_omits_an_array_with_an_element_that_does_not_parse() -> None:
             ),
         ),
     )
-    choices = labels("sizes", "none", "sizes")
-    assert decode_arguments("3 and four", grid, choices, {}) == {}
+    choices = labels("sizes", "sizes", "sizes", "none", "sizes")
+    assert decode_arguments("sizes 3 4 and 5", grid, choices, {}) == {
+        "sizes": [3, 4, 5]
+    }
 
 
 def test_decode_of_a_function_without_parameters_is_empty() -> None:

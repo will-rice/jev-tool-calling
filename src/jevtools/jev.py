@@ -8,11 +8,22 @@ from itertools import groupby
 from pydantic import JsonValue
 from typesafe_sdk import Choice, Noul, SystemOneResponse, TypeSafeClient
 
-from jevtools.config import MAX_GAP, MODEL, NONE, THRESHOLD, WORD_PATTERN
-from jevtools.models import Call, Example, Function, Prediction
+from jevtools.config import (
+    LABEL_THRESHOLD,
+    MAX_GAP,
+    MODEL,
+    NONE,
+    THRESHOLD,
+    WORD_PATTERN,
+)
+from jevtools.models import Call, Example, Function, Parameter, Prediction
 
 NO_TOOL = "No offered function can answer the request."
-NO_ARGUMENT = "The word is not part of any argument's value."
+NO_ARGUMENT = (
+    "The word is not part of any argument's value. A word that only names or "
+    "introduces an argument, such as a field name, a preposition, or "
+    "punctuation around the value, is none."
+)
 NUMBER_EDGE = string.punctuation.replace("-", "").replace("+", "").replace(".", "")
 INTEGER = re.compile(r"[-+]?\d+")
 FLOAT = re.compile(r"[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?")
@@ -38,7 +49,6 @@ def predict(client: TypeSafeClient, example: Example) -> Prediction:
     )
     tool = tool_response.choices["tool"]
     call = None
-    chosen: dict[str, str] = {}
     choices: dict[str, dict[str, float]] = {}
     nouls: dict[str, float] = {}
     argument_input_tokens = 0
@@ -47,7 +57,6 @@ def predict(client: TypeSafeClient, example: Example) -> Prediction:
         questions = argument_questions(example.query, function)
         if questions:
             response = client.system_one(state, questions, model=MODEL)
-            chosen = {name: answer.choice for name, answer in response.choices.items()}
             choices = {
                 name: answer.probabilities for name, answer in response.choices.items()
             }
@@ -55,7 +64,7 @@ def predict(client: TypeSafeClient, example: Example) -> Prediction:
             argument_input_tokens = input_tokens(response)
         call = Call(
             name=function.name,
-            arguments=decode_arguments(example.query, function, chosen, nouls),
+            arguments=decode_arguments(example.query, function, choices, nouls),
         )
     return Prediction(
         example=example,
@@ -94,7 +103,9 @@ def argument_questions(query: str, function: Function) -> dict[str, Choice | Nou
     which of them the word supplies. The word and the words on either side
     of it are labelled fields, which the model reads more reliably than a
     marker inside a sentence. The none option is described: without that,
-    most words outside any value are given a parameter anyway.
+    most words outside any value are given a parameter anyway. It also says
+    that a word naming or introducing an argument is none: without that, the
+    model labels "base" in "a base of 10" as well as "10".
 
     A closed-set parameter is asked directly: a Choice over an enum, a Noul
     for a boolean, a Noul per member of an enum array. An optional enum or
@@ -177,7 +188,7 @@ def word_spans(query: str) -> list[tuple[int, int]]:
 def decode_arguments(
     query: str,
     function: Function,
-    choices: Mapping[str, str],
+    choices: Mapping[str, Mapping[str, float]],
     nouls: Mapping[str, float],
 ) -> dict[str, JsonValue]:
     """Turn the argument answers into the function's arguments.
@@ -185,10 +196,15 @@ def decode_arguments(
     An argument is left out when its value does not parse, when an optional
     closed-set argument is not stated, or when a set has no members.
 
+    A string takes its first run of labelled words, and a string array one
+    element per run, all of which must be readable. A number is read word
+    by word: it takes the first labelled word that parses, and a number
+    array every labelled word that parses.
+
     Args:
         query: The request text.
         function: The function being called.
-        choices: Each Choice question's chosen option, by question name.
+        choices: Each Choice question's option probabilities, by question name.
         nouls: Each Noul question's yes-probability, by question name.
     """
     arguments: dict[str, JsonValue] = {}
@@ -201,13 +217,9 @@ def decode_arguments(
         name = parameter.name
         match parameter.kind:
             case "words":
-                runs = texts.get(name, [])
-                values: list[JsonValue] = [
-                    coerce(text, parameter.value_type)
-                    for text in (runs if parameter.type == "array" else runs[:1])
-                ]
-                if values and None not in values:
-                    arguments[name] = values if parameter.type == "array" else values[0]
+                value = open_value(parameter, texts.get(name, []))
+                if value is not None:
+                    arguments[name] = value
             case "set":
                 members: list[JsonValue] = [
                     value
@@ -216,31 +228,59 @@ def decode_arguments(
                 ]
                 if members:
                     arguments[name] = members
-            case "choice" | "flag":
+            case "choice":
                 if parameter.required or nouls[f"stated.{name}"] >= THRESHOLD:
-                    arguments[name] = (
-                        choices[f"choice.{name}"]
-                        if parameter.kind == "choice"
-                        else nouls[f"flag.{name}"] >= THRESHOLD
-                    )
+                    options = choices[f"choice.{name}"]
+                    arguments[name] = max(options, key=lambda option: options[option])
+            case "flag":
+                if parameter.required or nouls[f"stated.{name}"] >= THRESHOLD:
+                    arguments[name] = nouls[f"flag.{name}"] >= THRESHOLD
     return arguments
 
 
+def open_value(parameter: Parameter, texts: Sequence[str]) -> JsonValue:
+    """Read an open-valued parameter's value from its texts, or None to omit it.
+
+    A string takes the first text, and a string array every text, all of
+    which must be readable. A number takes the first text that parses, and
+    a number array every text that parses.
+    """
+    values: list[JsonValue] = [coerce(text, parameter.value_type) for text in texts]
+    if parameter.value_type != "string":
+        values = [value for value in values if value is not None]
+    elif parameter.type != "array":
+        values = values[:1]
+    if not values or None in values:
+        return None
+    return values if parameter.type == "array" else values[0]
+
+
 def word_values(
-    query: str, function: Function, choices: Mapping[str, str]
+    query: str, function: Function, choices: Mapping[str, Mapping[str, float]]
 ) -> dict[str, list[str]]:
     """Group labelled words into each open-valued parameter's value texts.
 
-    Adjacent words with the same label are one value, cut from the query as
-    written. For a non-array parameter, up to MAX_GAP unlabelled words
-    between two words with its label take that label, so small words inside
-    a name stay in it. An array gets no filling, or its elements would merge.
+    A word's label is its most probable option, and counts only at
+    LABEL_THRESHOLD or above: the words that merely introduce a value are
+    the ones the model is unsure of.
+
+    For a string parameter, adjacent words with the same label are one
+    value, cut from the query as written. For a scalar string, up to MAX_GAP
+    unlabelled words between two words with its label take that label, so
+    small words inside a name stay in it. An array gets no filling, or its
+    elements would merge. For a number parameter every labelled word is its
+    own text, so a labelled word beside the number cannot spoil it.
     """
-    arrays = {p.name for p in function.parameters if p.type == "array"}
     spans = word_spans(query)
-    labels = [choices[f"token_{index}"] for index in range(len(spans))]
+    labels = []
+    for index in range(len(spans)):
+        probabilities = choices[f"token_{index}"]
+        label = max(probabilities, key=lambda option: probabilities[option])
+        labels.append(label if probabilities[label] >= LABEL_THRESHOLD else NONE)
+    strings = {p.name for p in function.parameters if p.value_type == "string"}
+    scalar_strings = {p.name for p in function.parameters if p.type == "string"}
     for start, label in enumerate(labels):
-        if label == NONE or label in arrays:
+        if label not in scalar_strings:
             continue
         for end in range(start + 2, min(start + MAX_GAP + 2, len(labels))):
             if labels[end] == label and all(
@@ -252,9 +292,15 @@ def word_values(
     position = 0
     for label, group in groupby(labels):
         length = len(list(group))
+        pieces = (
+            [(position, position + length - 1)]
+            if label in strings
+            else [(index, index) for index in range(position, position + length)]
+        )
         if label != NONE:
-            start, end = spans[position][0], spans[position + length - 1][1]
-            values.setdefault(label, []).append(query[start:end])
+            values.setdefault(label, []).extend(
+                query[spans[first][0] : spans[last][1]] for first, last in pieces
+            )
         position += length
     return values
 
