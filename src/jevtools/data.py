@@ -6,7 +6,8 @@ from typing import Any
 
 from huggingface_hub import hf_hub_download
 
-from jevtools.config import DATASET_REPO, DATASET_REVISION
+from jevtools.config import DATASET_REPO, DATASET_REVISION, MAX_WORDS
+from jevtools.jev import word_spans
 from jevtools.models import Example, Function, Gold, Parameter, Split
 
 
@@ -15,6 +16,10 @@ def load_examples(split: Split) -> list[Example]:
 
     On a split that offers one function per query, the gold function is
     that function, whatever name the gold file gives it.
+
+    Rows the benchmark cannot pose are left out: more than one message, an
+    enum of non-strings, or a query over MAX_WORDS words. The test splits
+    have none; the dev split has 25.
 
     Args:
         split: The BFCL category to load.
@@ -32,6 +37,8 @@ def load_examples(split: Split) -> list[Example]:
     )
     examples = []
     for row in read_rows(f"BFCL_v3_{split}.json"):
+        if not posable(row):
+            continue
         functions = tuple(parse_function(spec) for spec in row["function"])
         gold = None
         if split != "irrelevance":
@@ -50,6 +57,21 @@ def load_examples(split: Split) -> list[Example]:
             )
         )
     return examples
+
+
+def posable(row: dict[str, Any]) -> bool:
+    """Decide whether a row has the shape the questions are built for."""
+    [messages] = row["question"]
+    return (
+        len(messages) == 1
+        and len(word_spans(messages[0]["content"])) <= MAX_WORDS
+        and all(
+            isinstance(value, str)
+            for function in row["function"]
+            for schema in function["parameters"]["properties"].values()
+            for value in schema.get("enum", schema.get("items", {}).get("enum", ()))
+        )
+    )
 
 
 def parse_function(spec: dict[str, Any]) -> Function:

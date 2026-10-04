@@ -1,10 +1,12 @@
 """Tests for data loading against the real dataset."""
 
 from collections import Counter
-from typing import get_args
 
+from jevtools.config import SPLITS
 from jevtools.data import load_examples
-from jevtools.models import Split
+from jevtools.jev import word_spans
+
+DEV_SIZE = 233
 
 
 def test_splits_parse_to_their_known_sizes() -> None:
@@ -12,6 +14,14 @@ def test_splits_parse_to_their_known_sizes() -> None:
     assert len(load_examples("simple")) == 400
     assert len(load_examples("multiple")) == 200
     assert len(load_examples("irrelevance")) == 240
+
+
+def test_dev_split_keeps_only_rows_shaped_like_the_test_splits() -> None:
+    """Rows with a system message, a non-string enum, or over 95 words are left out."""
+    examples = load_examples("live_simple")
+    assert len(examples) == DEV_SIZE
+    assert all(example.gold is not None for example in examples)
+    assert max(len(word_spans(example.query)) for example in examples) <= 95
 
 
 def test_simple_example_carries_its_query_function_and_parameters() -> None:
@@ -56,7 +66,7 @@ def test_parameter_kinds_across_all_splits() -> None:
     """Almost every parameter is open-valued; 37 cannot be filled at all."""
     kinds = Counter(
         parameter.kind
-        for split in get_args(Split)
+        for split in SPLITS["test"]
         for example in load_examples(split)
         for function in example.functions
         for parameter in function.parameters

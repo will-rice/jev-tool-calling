@@ -9,11 +9,11 @@ from dotenv import load_dotenv
 from tqdm.contrib.concurrent import thread_map
 from typesafe_sdk import TypeSafeClient
 
-from jevtools.config import MAX_WORKERS, RESULTS_DIR, RUNS
+from jevtools.config import MAX_WORKERS, RESULTS_DIR, RUNS, SPLITS
 from jevtools.data import load_examples
 from jevtools.jev import predict
 from jevtools.metrics import evaluate, summarize
-from jevtools.models import Split
+from jevtools.models import Split, Stage
 
 
 def main() -> None:
@@ -23,13 +23,19 @@ def main() -> None:
         logging.getLogger(noisy).setLevel(logging.WARNING)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
+        "stage",
+        choices=get_args(Stage),
+        help="Run the dev split once, or the test splits three times.",
+    )
+    parser.add_argument(
         "--limit", type=int, help="Evaluate only the first N queries of each split."
     )
     args = parser.parse_args()
-    splits = get_args(Split)
+    splits = SPLITS[args.stage]
+    run_numbers = range(1, RUNS[args.stage] + 1)
     paths = {
         (split, run): results_path(split, run, args.limit)
-        for run in range(1, RUNS + 1)
+        for run in run_numbers
         for split in splits
     }
     load_dotenv()
@@ -38,7 +44,7 @@ def main() -> None:
     RESULTS_DIR.mkdir(exist_ok=True)
     runs = []
     with TypeSafeClient() as client:
-        for run in range(1, RUNS + 1):
+        for run in run_numbers:
             predictions = []
             for split in splits:
                 rows = thread_map(

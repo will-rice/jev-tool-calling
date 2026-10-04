@@ -1,12 +1,11 @@
 """Tests for loading saved runs."""
 
 from pathlib import Path
-from typing import get_args
 
 import pytest
 
-from jevtools.config import RUNS
-from jevtools.models import Example, Prediction, Split
+from jevtools.config import RUNS, SPLITS
+from jevtools.models import Example, Prediction
 from jevtools.scripts.report import load_runs
 from jevtools.scripts.run import results_path
 
@@ -17,8 +16,8 @@ def test_load_runs_reads_every_split_of_each_run(
     """A run is all three splits' predictions together."""
     monkeypatch.chdir(tmp_path)
     Path("results").mkdir()
-    for run in range(1, RUNS + 1):
-        for split in get_args(Split):
+    for run in range(1, RUNS["test"] + 1):
+        for split in SPLITS["test"]:
             prediction = Prediction(
                 example=Example(
                     id=f"{split}_0", split=split, query="q", functions=(), gold=None
@@ -34,8 +33,8 @@ def test_load_runs_reads_every_split_of_each_run(
             results_path(split, run, None).write_text(
                 prediction.model_dump_json() + "\n"
             )
-    runs = load_runs()
-    assert len(runs) == RUNS
+    runs = load_runs("test")
+    assert len(runs) == RUNS["test"]
     assert [p.example.id for p in runs[0]] == [
         "simple_0",
         "multiple_0",

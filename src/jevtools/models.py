@@ -4,7 +4,8 @@ from typing import Literal, Self
 
 from pydantic import BaseModel, JsonValue, model_validator
 
-Split = Literal["simple", "multiple", "irrelevance"]
+Split = Literal["simple", "multiple", "irrelevance", "live_simple"]
+Stage = Literal["dev", "test"]
 Kind = Literal["words", "choice", "flag", "set"]
 SCALARS = ("string", "integer", "float")
 
