@@ -71,7 +71,9 @@ class Example(BaseModel, frozen=True):
         """Reject a gold call to a function the example does not offer."""
         offered = [function.name for function in self.functions]
         if self.gold is not None and self.gold.name not in offered:
-            raise ValueError(f"Gold function {self.gold.name} is not offered: {offered}")
+            raise ValueError(
+                f"Gold function {self.gold.name} is not offered: {offered}"
+            )
         return self
 
     @property
@@ -84,7 +86,9 @@ class Example(BaseModel, frozen=True):
         if self.gold is None:
             raise ValueError(f"{self.id} has no gold call")
         name = self.gold.name
-        function = next(function for function in self.functions if function.name == name)
+        function = next(
+            function for function in self.functions if function.name == name
+        )
         return function, self.gold.accepted
 
 

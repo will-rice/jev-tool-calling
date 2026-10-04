@@ -49,7 +49,11 @@ AREA = Function(
         (Parameter(name="p", type="dict", description=None, required=True), None),
         (
             Parameter(
-                name="p", type="array", description=None, required=True, item_type="dict"
+                name="p",
+                type="array",
+                description=None,
+                required=True,
+                item_type="dict",
             ),
             None,
         ),
@@ -110,9 +114,13 @@ def test_prediction_survives_a_json_round_trip() -> None:
             split="simple",
             query="base 10",
             functions=(AREA,),
-            gold=Gold(name="triangle.area", accepted={"base": [10], "unit": ["", "cm"]}),
+            gold=Gold(
+                name="triangle.area", accepted={"base": [10], "unit": ["", "cm"]}
+            ),
         ),
-        call=Call(name="triangle.area", arguments={"base": 10, "ratio": 2.5, "on": True}),
+        call=Call(
+            name="triangle.area", arguments={"base": 10, "ratio": 2.5, "on": True}
+        ),
         tool_probabilities={"triangle.area": 0.9, "none": 0.1},
         choices={"token_0": {"base": 0.2, "none": 0.8}},
         nouls={"flag.on": 0.7},
